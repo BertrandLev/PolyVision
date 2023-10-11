@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "C:\\Users\\J0401466\\OneDrive - TotalEnergies\\6_ETUDES & PROJETS\\CODE Python 3\\2_Projets\\Extract_LIMS",
+        "./app"
+    ]
+}
