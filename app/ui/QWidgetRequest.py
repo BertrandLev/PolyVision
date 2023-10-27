@@ -1,6 +1,8 @@
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QComboBox,
                              QGroupBox, QPushButton, QGridLayout, QLabel,
-                             QLineEdit, QListWidget)
+                             QLineEdit, QListWidget, QMenu, )
+from PyQt6.QtGui import QAction
 
 class RequestTab(QWidget):
     def __init__(self) -> None:
@@ -25,7 +27,7 @@ class RequestTab(QWidget):
         # First Line: Search by Label and Dropdown List
         search_by_label = QLabel("Search by:")
         search_by_dropdown = QComboBox()
-        search_by_dropdown.addItems(["DDT", "LIMS n°", "Product", "Material"])
+        search_by_dropdown.addItems(["DDT", "Sample", "Product", "Material"])
         groupbox_layout.addWidget(search_by_label, 0, 0)
         groupbox_layout.addWidget(search_by_dropdown, 0, 1)
         
@@ -47,6 +49,9 @@ class RequestTab(QWidget):
         
         # Fourth Line: List Widget
         search_list = QListWidget()
+        search_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
+        search_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        search_list.customContextMenuRequested.connect(lambda event: self.openListContextMenu(event,search_list))
         groupbox_layout.addWidget(search_list, 3, 0, 1, 4)
         
         # Set layout to groupbox_left
@@ -71,6 +76,19 @@ class RequestTab(QWidget):
 
         layout.addLayout(grid_layout)
         self.setLayout(layout)
+
+    def openListContextMenu(self, event, search_list):
+        context_menu = QMenu(search_list)
+        delete_action = QAction("Delete", self)
+        delete_action.triggered.connect(lambda: self.deleteSelectedItem(search_list))
+        context_menu.addAction(delete_action)
+        context_menu.exec(search_list.mapToGlobal(event))
+
+    def deleteSelectedItem(self, search_list):
+        selected_items = search_list.selectedItems()
+        for item in selected_items:
+            row = search_list.row(item)
+            search_list.takeItem(row)
 
     def onSearchModeChanged(self, index):
         search_mode = index  # 0 for Quick Search, 1 for Advanced Search
