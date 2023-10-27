@@ -1,10 +1,90 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QComboBox,
                              QGroupBox, QPushButton, QGridLayout, QLabel,
-                             QLineEdit, QListWidget, QMenu, )
+                             QLineEdit, QTableWidget, QMenu, QHeaderView,
+                             QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QAction
 
 from my_module.Query import Query
+
+class QuickSearch(QGroupBox):
+    def __init__(self, ) -> None:
+        super().__init__(title = "Search Criteria")
+
+        layout = QGridLayout()
+        
+        # First Line: Search by Label and Dropdown List
+        search_by_label = QLabel("Search by:")
+        search_by_dropdown = QComboBox()
+        search_by_dropdown.addItems(["DDT", "Sample", "Product", "Material"])
+        layout.addWidget(search_by_label, 0, 0)
+        layout.addWidget(search_by_dropdown, 0, 1)
+        
+        # Second Line: Element Label, Text Entry, Add Button, List Button
+        element_label = QLabel("Element:")
+        value_entry = QLineEdit()
+        add_button = QPushButton("Add")
+        add_button.clicked.connect(lambda: self.addToTable(search_by_dropdown, value_entry, search_table))
+        list_button = QPushButton("...")
+        list_button.clicked.connect(lambda: self.showList(search_table))
+        layout.addWidget(element_label, 1, 0)
+        layout.addWidget(value_entry, 1, 1)
+        layout.addWidget(add_button, 1, 2)
+        layout.addWidget(list_button, 1, 3)
+        
+        # Third Line: Current Search List Label
+        current_list_label = QLabel("Current search list")
+        layout.addWidget(current_list_label, 2, 0, 1, 4)
+        
+        # Fourth Line: List Widget
+        search_table = QTableWidget()
+        search_table.setColumnCount(3)  # Set number of columns
+        search_table.setHorizontalHeaderLabels(["Field", "Operator", "Value"])  # Set column headers
+        # Set stretch factors for columns
+        search_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
+        search_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
+        search_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        search_table.setColumnWidth(0, 100) 
+        search_table.setColumnWidth(1, 100)
+
+        # Add table features
+        search_table.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
+        search_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        search_table.customContextMenuRequested.connect(lambda event: self.openTableContextMenu(event,search_table))
+        
+        layout.addWidget(search_table, 3, 0, 1, 4)
+        
+        # Set layout to groupbox_left
+        self.setLayout(layout)
+
+    def addToTable(self, field_entry, value_entry, search_table):
+        field = field_entry.currentText()
+        value = value_entry.text()
+        if value:
+            row_position = search_table.rowCount()
+            search_table.insertRow(row_position)
+            search_table.setItem(row_position, 0, QTableWidgetItem(field))
+            search_table.setItem(row_position, 1, QTableWidgetItem("IN"))
+            search_table.setItem(row_position, 2, QTableWidgetItem(value))
+
+    def showList(self, search_table):
+        list_content = [search_table.item(i).text() for i in range(search_table.count())]
+        print("Current Search List:", list_content)
+        
+    def openTableContextMenu(self, event, search_table):
+        context_menu = QMenu(search_table)
+        delete_action = QAction("Delete", self)
+        delete_action.triggered.connect(lambda: self.deleteSelectedItem(search_table))
+        context_menu.addAction(delete_action)
+        context_menu.exec(search_table.mapToGlobal(event))
+
+    def deleteSelectedItem(self, search_table):
+        selected_items = search_table.selectedItems()
+        selected_rows = set(item.row() for item in selected_items)
+
+        for row in sorted(selected_rows, reverse=True):
+            search_table.removeRow(row)
+
 
 class RequestTab(QWidget):
     def __init__(self) -> None:
@@ -25,52 +105,15 @@ class RequestTab(QWidget):
         grid_layout.addWidget(search_mode_combobox, 0, 0, 1, 2)  # row 0, column 0, span 1 row, 2 columns
 
         # Middle: Group Box
-        groupbox_left = QGroupBox("Search Criteria")
-        groupbox_layout = QGridLayout()
-        
-        # First Line: Search by Label and Dropdown List
-        search_by_label = QLabel("Search by:")
-        search_by_dropdown = QComboBox()
-        search_by_dropdown.addItems(["DDT", "Sample", "Product", "Material"])
-        groupbox_layout.addWidget(search_by_label, 0, 0)
-        groupbox_layout.addWidget(search_by_dropdown, 0, 1)
-        
-        # Second Line: Element Label, Text Entry, Add Button, List Button
-        element_label = QLabel("Element:")
-        element_entry = QLineEdit()
-        add_button = QPushButton("Add")
-        add_button.clicked.connect(lambda: self.addToList(element_entry, search_list))
-        list_button = QPushButton("...")
-        list_button.clicked.connect(lambda: self.showList(search_list))
-        groupbox_layout.addWidget(element_label, 1, 0)
-        groupbox_layout.addWidget(element_entry, 1, 1)
-        groupbox_layout.addWidget(add_button, 1, 2)
-        groupbox_layout.addWidget(list_button, 1, 3)
-        
-        # Third Line: Current Search List Label
-        current_list_label = QLabel("Current search list")
-        groupbox_layout.addWidget(current_list_label, 2, 0, 1, 4)
-        
-        # Fourth Line: List Widget
-        search_list = QListWidget()
-        search_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
-        search_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        search_list.customContextMenuRequested.connect(lambda event: self.openListContextMenu(event,search_list))
-        groupbox_layout.addWidget(search_list, 3, 0, 1, 4)
-        
-        # Set layout to groupbox_left
-        groupbox_left.setLayout(groupbox_layout)
+        groupbox_left = QuickSearch()        
         grid_layout.addWidget(groupbox_left, 1, 0, 1, 2)  # row 1, column 0, span 1 row, 2 columns
 
         # Bottom: Preview Button
         preview_button = QPushButton("Preview")
-        preview_button.clicked.connect(lambda: self.preview_query(search_mode_combobox.currentIndex(),search_list))
+        preview_button.clicked.connect(lambda: self.preview_query(search_mode_combobox, groupbox_left))
         grid_layout.addWidget(preview_button, 2, 0, 1, 2)  # row 2, column 0, span 1 row, 2 columns
 
-
         # Right Part of the Grid Layout
-        # Top: None
-        
         # Middle: Group Box
         groupbox_right = QGroupBox("Result Details")
         grid_layout.addWidget(groupbox_right, 1, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
@@ -82,45 +125,20 @@ class RequestTab(QWidget):
         layout.addLayout(grid_layout)
         self.setLayout(layout)
 
-    def openListContextMenu(self, event, search_list):
-        context_menu = QMenu(search_list)
-        delete_action = QAction("Delete", self)
-        delete_action.triggered.connect(lambda: self.deleteSelectedItem(search_list))
-        context_menu.addAction(delete_action)
-        context_menu.exec(search_list.mapToGlobal(event))
-
-    def deleteSelectedItem(self, search_list):
-        selected_items = search_list.selectedItems()
-        for item in selected_items:
-            row = search_list.row(item)
-            search_list.takeItem(row)
-
     def onSearchModeChanged(self, index):
-        self.search_mode = index  # 0 for Quick Search, 1 for Advanced Search
-        if self.search_mode == 0:
-            print("Switched to Quick Search mode")
-            # Implement logic for Quick Search mode
-        else:
-            print("Switched to Advanced Search mode")
-            # Implement logic for Advanced Search mode
+        pass
+        # search_mode = index  # 0 for Quick Search, 1 for Advanced Search
+        # if search_mode == 0:
+        #     print("Switched to Quick Search mode")
+        # else:
+        #     print("Switched to Advanced Search mode")
 
-    def addToList(self, element_entry, search_list):
-        element = element_entry.text()
-        if element:
-            search_list.addItem(element)
-            element_entry.clear()
-
-    def showList(self, search_list):
-        list_content = [search_list.item(i).text() for i in range(search_list.count())]
-        print("Current Search List:", list_content)
-
-    def preview_query(self, search_mode, search_list, search_field=None):
+    def preview_query(self, search_mode, search_list):
         self.add_to_query(search_mode, search_list)
         
-
-    def add_to_query(self, search_mode, search_list, search_field=None):
+    def add_to_query(self, search_mode):
         if search_mode == 0: # Logic for Quick Search mode
             print("Quick")
         else: # Logic for Advanced Search mode
             print('Advance')
-            
+        
