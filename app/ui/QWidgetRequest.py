@@ -4,9 +4,13 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QComboBox,
                              QLineEdit, QListWidget, QMenu, )
 from PyQt6.QtGui import QAction
 
+from my_module.Query import Query
+
 class RequestTab(QWidget):
     def __init__(self) -> None:
         super().__init__()
+        self.query = Query()
+        
         layout = QVBoxLayout()
 
         # Grid Layout
@@ -60,6 +64,7 @@ class RequestTab(QWidget):
 
         # Bottom: Preview Button
         preview_button = QPushButton("Preview")
+        preview_button.clicked.connect(lambda: self.preview_query(search_mode_combobox.currentIndex(),search_list))
         grid_layout.addWidget(preview_button, 2, 0, 1, 2)  # row 2, column 0, span 1 row, 2 columns
 
 
@@ -91,8 +96,8 @@ class RequestTab(QWidget):
             search_list.takeItem(row)
 
     def onSearchModeChanged(self, index):
-        search_mode = index  # 0 for Quick Search, 1 for Advanced Search
-        if search_mode == 0:
+        self.search_mode = index  # 0 for Quick Search, 1 for Advanced Search
+        if self.search_mode == 0:
             print("Switched to Quick Search mode")
             # Implement logic for Quick Search mode
         else:
@@ -108,3 +113,14 @@ class RequestTab(QWidget):
     def showList(self, search_list):
         list_content = [search_list.item(i).text() for i in range(search_list.count())]
         print("Current Search List:", list_content)
+
+    def preview_query(self, search_mode, search_list, search_field=None):
+        self.add_to_query(search_mode, search_list)
+        
+
+    def add_to_query(self, search_mode, search_list, search_field=None):
+        if search_mode == 0: # Logic for Quick Search mode
+            print("Quick")
+        else: # Logic for Advanced Search mode
+            print('Advance')
+            

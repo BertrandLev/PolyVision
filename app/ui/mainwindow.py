@@ -61,7 +61,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(QWidget())
         self.session = None
 
-
     def showAboutDialog(self):
         about_text = "Data Analysis Application v1.0\n\nDeveloped by Bertrand Levaché"
         QMessageBox.about(self, "About Data Analysis Application", about_text)

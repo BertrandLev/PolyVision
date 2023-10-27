@@ -6,7 +6,6 @@ from ui.QWidgetSelection import SelectionTab
 from ui.QWidgetAnalysis import AnalysisTab
 from ui.QWidgetExport import ExportTab
 
-
 class Session(QTabWidget):
     """
     Cette classe gère les intéractions et échange de données entre les différents onglets d'une session.
