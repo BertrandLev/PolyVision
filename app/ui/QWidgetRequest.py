@@ -15,6 +15,7 @@ class RequestTab(QWidget):
         search_mode_combobox = QComboBox()
         search_mode_combobox.addItem("Quick Search")
         search_mode_combobox.addItem("Advanced Search")
+        search_mode_combobox.currentIndexChanged.connect(self.onSearchModeChanged)  # Connect signal to a method
         grid_layout.addWidget(search_mode_combobox, 0, 0, 1, 2)  # row 0, column 0, span 1 row, 2 columns
 
         # Middle: Group Box
@@ -27,7 +28,7 @@ class RequestTab(QWidget):
         search_by_dropdown.addItems(["DDT", "LIMS n°", "Product", "Material"])
         groupbox_layout.addWidget(search_by_label, 0, 0)
         groupbox_layout.addWidget(search_by_dropdown, 0, 1)
-
+        
         # Second Line: Element Label, Text Entry, Add Button, List Button
         element_label = QLabel("Element:")
         element_entry = QLineEdit()
@@ -39,22 +40,23 @@ class RequestTab(QWidget):
         groupbox_layout.addWidget(element_entry, 1, 1)
         groupbox_layout.addWidget(add_button, 1, 2)
         groupbox_layout.addWidget(list_button, 1, 3)
-
+        
         # Third Line: Current Search List Label
         current_list_label = QLabel("Current search list")
         groupbox_layout.addWidget(current_list_label, 2, 0, 1, 4)
-
+        
         # Fourth Line: List Widget
         search_list = QListWidget()
         groupbox_layout.addWidget(search_list, 3, 0, 1, 4)
-
+        
+        # Set layout to groupbox_left
         groupbox_left.setLayout(groupbox_layout)
         grid_layout.addWidget(groupbox_left, 1, 0, 1, 2)  # row 1, column 0, span 1 row, 2 columns
-
 
         # Bottom: Preview Button
         preview_button = QPushButton("Preview")
         grid_layout.addWidget(preview_button, 2, 0, 1, 2)  # row 2, column 0, span 1 row, 2 columns
+
 
         # Right Part of the Grid Layout
         # Top: None
@@ -69,8 +71,6 @@ class RequestTab(QWidget):
 
         layout.addLayout(grid_layout)
         self.setLayout(layout)
-
-        # Connect signals and add functionality for the buttons here...
 
     def onSearchModeChanged(self, index):
         search_mode = index  # 0 for Quick Search, 1 for Advanced Search
