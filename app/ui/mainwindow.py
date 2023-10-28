@@ -1,6 +1,4 @@
-
-from PyQt6.QtWidgets import (QMainWindow, QLabel, QVBoxLayout,
-                             QWidget, QToolBar, QMessageBox, QTabWidget)
+from PyQt6.QtWidgets import (QMainWindow, QWidget, QToolBar, QMessageBox)
 from PyQt6.QtGui import QAction
 from ui.TabWidgetSession import Session
 

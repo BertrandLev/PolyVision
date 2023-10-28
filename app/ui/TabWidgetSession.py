@@ -1,5 +1,4 @@
-from PyQt6.QtWidgets import (QWidget, QTabWidget, QVBoxLayout)
-from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import (QTabWidget)
 
 from ui.QWidgetRequest import RequestTab
 from ui.QWidgetSelection import SelectionTab

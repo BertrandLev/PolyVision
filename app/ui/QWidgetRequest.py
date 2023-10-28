@@ -1,14 +1,14 @@
-from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QComboBox,
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import (QTableView, QWidget, QVBoxLayout, QComboBox,
                              QGroupBox, QPushButton, QGridLayout, QLabel,
-                             QLineEdit, QTableWidget, QMenu, QHeaderView,
+                             QLineEdit, QMenu, QHeaderView,
                              QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QAction
 
-from my_module.Query import Query
+from my_module.model import QuickQuery
 
 class QuickSearch(QGroupBox):
-    def __init__(self, ) -> None:
+    def __init__(self, query:QuickQuery ) -> None:
         super().__init__(title = "Search Criteria")
 
         layout = QGridLayout()
@@ -24,7 +24,7 @@ class QuickSearch(QGroupBox):
         element_label = QLabel("Element:")
         value_entry = QLineEdit()
         add_button = QPushButton("Add")
-        add_button.clicked.connect(lambda: self.addToTable(search_by_dropdown, value_entry, search_table))
+        add_button.clicked.connect(lambda: self.addToTable(search_by_dropdown, value_entry, query))
         list_button = QPushButton("...")
         list_button.clicked.connect(lambda: self.showList(search_table))
         layout.addWidget(element_label, 1, 0)
@@ -37,19 +37,11 @@ class QuickSearch(QGroupBox):
         layout.addWidget(current_list_label, 2, 0, 1, 4)
         
         # Fourth Line: List Widget
-        search_table = QTableWidget()
-        search_table.setColumnCount(3)  # Set number of columns
-        search_table.setHorizontalHeaderLabels(["Field", "Operator", "Value"])  # Set column headers
-        # Set stretch factors for columns
-        search_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Fixed)
-        search_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Fixed)
-        search_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
-        search_table.setColumnWidth(0, 100) 
-        search_table.setColumnWidth(1, 100)
+        search_table = QTableView()
+        search_table.setModel(query)
 
         # Add table features
-        search_table.setSelectionMode(QTableWidget.SelectionMode.MultiSelection)
-        search_table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        search_table.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         search_table.customContextMenuRequested.connect(lambda event: self.openTableContextMenu(event,search_table))
         
         layout.addWidget(search_table, 3, 0, 1, 4)
@@ -57,15 +49,13 @@ class QuickSearch(QGroupBox):
         # Set layout to groupbox_left
         self.setLayout(layout)
 
-    def addToTable(self, field_entry, value_entry, search_table):
+    def addToTable(self, field_entry: QComboBox, value_entry: QLineEdit , query: QuickQuery):
         field = field_entry.currentText()
         value = value_entry.text()
         if value:
-            row_position = search_table.rowCount()
-            search_table.insertRow(row_position)
-            search_table.setItem(row_position, 0, QTableWidgetItem(field))
-            search_table.setItem(row_position, 1, QTableWidgetItem("IN"))
-            search_table.setItem(row_position, 2, QTableWidgetItem(value))
+            query.conditions.append((field,"IN",value))
+            query.layoutChanged.emit()
+            value_entry.setText("")
 
     def showList(self, search_table):
         list_content = [search_table.item(i).text() for i in range(search_table.count())]
@@ -89,7 +79,7 @@ class QuickSearch(QGroupBox):
 class RequestTab(QWidget):
     def __init__(self) -> None:
         super().__init__()
-        self.query = Query()
+        self.query = QuickQuery()
         
         layout = QVBoxLayout()
 
@@ -105,7 +95,7 @@ class RequestTab(QWidget):
         grid_layout.addWidget(search_mode_combobox, 0, 0, 1, 2)  # row 0, column 0, span 1 row, 2 columns
 
         # Middle: Group Box
-        groupbox_left = QuickSearch()        
+        groupbox_left = QuickSearch(self.query)        
         grid_layout.addWidget(groupbox_left, 1, 0, 1, 2)  # row 1, column 0, span 1 row, 2 columns
 
         # Bottom: Preview Button
