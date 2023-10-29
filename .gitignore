@@ -1,1 +1,3 @@
 venv
+app/ui/__pycache__/
+app/my_module/__pycache__/

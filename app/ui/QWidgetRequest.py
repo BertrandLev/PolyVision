@@ -42,7 +42,7 @@ class QuickSearch(QGroupBox):
 
         # Add table features
         search_table.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-        search_table.customContextMenuRequested.connect(lambda event: self.openTableContextMenu(event,search_table))
+        search_table.customContextMenuRequested.connect(lambda event: self.openTableContextMenu(event,search_table, query))
         
         layout.addWidget(search_table, 3, 0, 1, 4)
         
@@ -57,23 +57,29 @@ class QuickSearch(QGroupBox):
             query.layoutChanged.emit()
             value_entry.setText("")
 
-    def showList(self, search_table):
-        list_content = [search_table.item(i).text() for i in range(search_table.count())]
-        print("Current Search List:", list_content)
+    def deleteSelectedItem(self, tableView : QTableView, query: QuickQuery):
+        indexes = tableView.selectedIndexes()
+        if indexes:
+            for index in indexes:
+                del query.conditions[index.row()][index.column()]
+            query.layoutChanged.emit()
+            tableView.clearSelection()
+        # selected_rows = set(item.row() for item in selected_items)
+
+        # for row in sorted(selected_rows, reverse=True):
+        #     search_table.removeRow(row)
+
+    def showList(self, search_table: QTableView):
+        pass
+        # list_content = [search_table.item(i).text() for i in range(search_table.count())]
+        # print("Current Search List:", list_content)
         
-    def openTableContextMenu(self, event, search_table):
+    def openTableContextMenu(self, event, search_table: QTableView, query: QuickQuery):
         context_menu = QMenu(search_table)
         delete_action = QAction("Delete", self)
-        delete_action.triggered.connect(lambda: self.deleteSelectedItem(search_table))
+        delete_action.triggered.connect(lambda: self.deleteSelectedItem(search_table, query))
         context_menu.addAction(delete_action)
         context_menu.exec(search_table.mapToGlobal(event))
-
-    def deleteSelectedItem(self, search_table):
-        selected_items = search_table.selectedItems()
-        selected_rows = set(item.row() for item in selected_items)
-
-        for row in sorted(selected_rows, reverse=True):
-            search_table.removeRow(row)
 
 
 class RequestTab(QWidget):
