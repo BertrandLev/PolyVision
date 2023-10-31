@@ -53,7 +53,7 @@ class QuickSearch(QGroupBox):
         field = field_entry.currentText()
         value = value_entry.text()
         if value:
-            query.conditions.append((field,"IN",value))
+            query.conditions.append((field,"=",value))
             query.layoutChanged.emit()
             value_entry.setText("")
 
@@ -61,13 +61,9 @@ class QuickSearch(QGroupBox):
         indexes = tableView.selectedIndexes()
         if indexes:
             for index in indexes:
-                del query.conditions[index.row()][index.column()]
+                del query.conditions[index.row()]
             query.layoutChanged.emit()
             tableView.clearSelection()
-        # selected_rows = set(item.row() for item in selected_items)
-
-        # for row in sorted(selected_rows, reverse=True):
-        #     search_table.removeRow(row)
 
     def showList(self, search_table: QTableView):
         pass

@@ -14,6 +14,9 @@ class QuickQuery(QtCore.QAbstractTableModel):
     def data(self, index, role):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             return self.conditions[index.row()][index.column()]
+        
+        if role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
+            return QtCore.Qt.AlignmentFlag.AlignCenter
 
     def rowCount(self, index) -> int:
         return len(self.conditions)
@@ -27,9 +30,6 @@ class QuickQuery(QtCore.QAbstractTableModel):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
             if orientation == QtCore.Qt.Orientation.Horizontal:
                 return str(Titre_Col[section])
-
-            # if orientation == QtCore.Qt.Orientation.Vertical:
-            #     return self.rowCount()
 
     # def preview_query(self) -> str:
     #     join_condition = ["/ ".join(condition) for condition in self.conditions]
