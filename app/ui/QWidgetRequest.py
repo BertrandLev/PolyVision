@@ -4,8 +4,9 @@ from PyQt6.QtWidgets import (QTableView, QWidget, QVBoxLayout, QComboBox,
                              QLineEdit, QMenu, QHeaderView,
                              QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QAction
-
+from PyQt6.QtSql import QSqlQuery, QSqlQueryModel, QSqlDatabase
 from my_module.model import QuickQuery
+import database as LIMS
 
 class QuickSearch(QGroupBox):
     def __init__(self, query:QuickQuery ) -> None:
@@ -16,7 +17,7 @@ class QuickSearch(QGroupBox):
         # First Line: Search by Label and Dropdown List
         search_by_label = QLabel("Search by:")
         search_by_dropdown = QComboBox()
-        search_by_dropdown.addItems(["DDT", "Sample", "Product", "Material"])
+        search_by_dropdown.addItems(["Project Name", "Sample Number", "Product", "Material"])
         layout.addWidget(search_by_label, 0, 0)
         layout.addWidget(search_by_dropdown, 0, 1)
         
@@ -82,7 +83,7 @@ class RequestTab(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.query = QuickQuery()
-        
+        self.lims_data = QSqlQueryModel()
         layout = QVBoxLayout()
 
         # Grid Layout
@@ -102,13 +103,14 @@ class RequestTab(QWidget):
 
         # Bottom: Preview Button
         preview_button = QPushButton("Preview")
-        preview_button.clicked.connect(lambda: self.preview_query(search_mode_combobox, groupbox_left))
+        preview_button.clicked.connect(lambda: self.preview_query(search_mode_combobox))
         grid_layout.addWidget(preview_button, 2, 0, 1, 2)  # row 2, column 0, span 1 row, 2 columns
 
         # Right Part of the Grid Layout
         # Middle: Group Box
-        groupbox_right = QGroupBox("Result Details")
-        grid_layout.addWidget(groupbox_right, 1, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
+        self.query_result = QTableView()
+        self.query_result.setModel(self.lims_data)
+        grid_layout.addWidget(self.query_result, 1, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
 
         # Bottom: Send to Selection Button
         send_to_selection_button = QPushButton("Send to Selection")
@@ -125,8 +127,16 @@ class RequestTab(QWidget):
         # else:
         #     print("Switched to Advanced Search mode")
 
-    def preview_query(self, search_mode, search_list):
-        self.add_to_query(search_mode, search_list)
+    def preview_query(self, search_mode):
+        if LIMS.connection_LIMS():
+            con = QSqlDatabase.database("LIMS")
+            my_query = QSqlQuery(self.query.createQuery(), con)
+            self.lims_data.setQuery(my_query)
+            self.query_result.update()
+            LIMS.close_connection()
+            print("End of data update")
+        else:
+            print("erreur à l'ouverture du LIMS")
         
     def add_to_query(self, search_mode):
         if search_mode == 0: # Logic for Quick Search mode
