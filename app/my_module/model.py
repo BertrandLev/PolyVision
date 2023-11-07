@@ -1,6 +1,7 @@
 import typing
 from PyQt6 import QtCore
-from PyQt6.QtSql import QSqlQueryModel, QSqlQuery
+from PyQt6.QtCore import QModelIndex, QObject
+from PyQt6.QtSql import QSqlQueryModel
 
 class QuickQuery(QtCore.QAbstractTableModel):
     """
@@ -80,3 +81,66 @@ class QuickQuery(QtCore.QAbstractTableModel):
                 sql_query = sql_query + f" or {dict_conversion[key]} IN ({my_string})"
 
         return sql_query
+    
+class TableToTreeProxyModel(QtCore.QAbstractProxyModel):
+    """
+    A completer
+    """
+    def __init__(self, sourceModel: QSqlQueryModel, parent = None) -> None:
+        super(TableToTreeProxyModel,self).__init__(parent)
+        self.setSourceModel(sourceModel)
+
+    def mapFromSource(self, sourceIndex: QModelIndex) -> QModelIndex:
+        if sourceIndex.isValid():
+            return self.createIndex(sourceIndex.row(), sourceIndex.column())
+        return QModelIndex()
+    
+    def mapToSource(self, proxyIndex: QModelIndex) -> QModelIndex:
+        if proxyIndex.isValid():
+            return self.sourceModel().index(proxyIndex.row(), proxyIndex.column())
+        return QModelIndex()
+    
+    def index(self, row: int, column: int, parent: QModelIndex = ...) -> QModelIndex:
+        if not self.hasIndex(row, column, parent):
+            return QModelIndex()
+        
+        if not parent.isValid():  # top level
+            parentItem = QModelIndex()
+        elif parent.column() == 0:  # second level
+            parentItem = self.sourceModel().index(row, 0, QModelIndex())
+        else:  # third level
+            parentItem = self.sourceModel().index(row, 1, QModelIndex())
+
+        childItem = self.sourceModel().index(row, column, parentItem)
+
+        if childItem.isValid():
+            return self.createIndex(row, column, childItem)
+        else:
+            return QtCore.QModelIndex()
+    
+    def parent(self, proxyIndex: QModelIndex = ...) -> QModelIndex:
+        if not proxyIndex.isValid():
+            return QModelIndex()
+        childIndex = self.mapToSource(proxyIndex)
+        if childIndex.column() == 0:  # top level
+            return QModelIndex()
+        elif childIndex.column() == 1:  # second level
+            return self.mapFromSource(self.sourceModel().index(childIndex.row(), 0))
+        else:  # third level
+            return self.mapFromSource(self.sourceModel().index(childIndex.row(), 1))
+
+    def rowCount(self, parent=QModelIndex()):
+        if not parent.isValid():  # top level
+            return self.sourceModel().rowCount()
+        elif parent.column() == 0:  # second level
+            return self.sourceModel().columnCount() - 1
+        else:  # third level
+            return 0
+
+    def columnCount(self, parent=QModelIndex()):
+        return 3  # tree model has only one column
+
+    def data(self, index, role):
+        if role == QtCore.Qt.ItemDataRole.DisplayRole:
+            return self.sourceModel().data(self.mapToSource(index), role)
+        return None

@@ -1,11 +1,11 @@
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import (QTableView, QWidget, QVBoxLayout, QComboBox,
+from PyQt6.QtWidgets import (QTableView, QTreeView, QWidget, QVBoxLayout, QComboBox,
                              QGroupBox, QPushButton, QGridLayout, QLabel,
                              QLineEdit, QMenu, QHeaderView,
                              QTableWidgetItem, QHeaderView)
 from PyQt6.QtGui import QAction
 from PyQt6.QtSql import QSqlQuery, QSqlQueryModel, QSqlDatabase
-from my_module.model import QuickQuery
+from my_module.model import QuickQuery, TableToTreeProxyModel
 import database as LIMS
 
 class QuickSearch(QGroupBox):
@@ -83,7 +83,7 @@ class RequestTab(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.query = QuickQuery()
-        self.lims_data = QSqlQueryModel()
+        self.lims_table_data = QSqlQueryModel()
         layout = QVBoxLayout()
 
         # Grid Layout
@@ -109,12 +109,15 @@ class RequestTab(QWidget):
         # Right Part of the Grid Layout
         # Middle: Group Box
         self.query_result = QTableView()
-        self.query_result.setModel(self.lims_data)
+        self.query_result.setModel(self.lims_table_data)
         grid_layout.addWidget(self.query_result, 1, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
+        self.queryTree_result = QTreeView()
+        self.queryTree_result.setModel(TableToTreeProxyModel(self.lims_table_data))
+        grid_layout.addWidget(self.queryTree_result, 2, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
 
         # Bottom: Send to Selection Button
         send_to_selection_button = QPushButton("Send to Selection")
-        grid_layout.addWidget(send_to_selection_button, 2, 2, 1, 1)  # row 2, column 2, span 1 row, 1 column
+        grid_layout.addWidget(send_to_selection_button, 3, 2, 1, 1)  # row 2, column 2, span 1 row, 1 column
 
         layout.addLayout(grid_layout)
         self.setLayout(layout)
@@ -131,9 +134,7 @@ class RequestTab(QWidget):
         if LIMS.connection_LIMS():
             con = QSqlDatabase.database("LIMS")
             my_query = QSqlQuery(self.query.createQuery(), con)
-            self.lims_data.setQuery(my_query)
-            self.query_result.update()
-            LIMS.close_connection()
+            self.lims_table_data.setQuery(my_query)
             print("End of data update")
         else:
             print("erreur à l'ouverture du LIMS")
