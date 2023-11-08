@@ -1,11 +1,10 @@
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (QTableView, QTreeView, QWidget, QVBoxLayout, QComboBox,
                              QGroupBox, QPushButton, QGridLayout, QLabel,
-                             QLineEdit, QMenu, QHeaderView,
-                             QTableWidgetItem, QHeaderView)
+                             QLineEdit, QMenu, QHeaderView, QHeaderView)
 from PyQt6.QtGui import QAction
 from PyQt6.QtSql import QSqlQuery, QSqlQueryModel, QSqlDatabase
-from my_module.model import QuickQuery, TableToTreeProxyModel
+from my_module.model import QuickQuery, GroupbyColumnTableModel
 import database as LIMS
 
 class QuickSearch(QGroupBox):
@@ -84,6 +83,7 @@ class RequestTab(QWidget):
         super().__init__()
         self.query = QuickQuery()
         self.lims_table_data = QSqlQueryModel()
+        self.lims_tree_data = GroupbyColumnTableModel()
         layout = QVBoxLayout()
 
         # Grid Layout
@@ -112,7 +112,8 @@ class RequestTab(QWidget):
         self.query_result.setModel(self.lims_table_data)
         grid_layout.addWidget(self.query_result, 1, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
         self.queryTree_result = QTreeView()
-        self.queryTree_result.setModel(TableToTreeProxyModel(self.lims_table_data))
+
+        self.queryTree_result.setModel(self.lims_tree_data)
         grid_layout.addWidget(self.queryTree_result, 2, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
 
         # Bottom: Send to Selection Button
@@ -135,6 +136,7 @@ class RequestTab(QWidget):
             con = QSqlDatabase.database("LIMS")
             my_query = QSqlQuery(self.query.createQuery(), con)
             self.lims_table_data.setQuery(my_query)
+            self.lims_tree_data.setSourceModel(self.lims_table_data)
             print("End of data update")
         else:
             print("erreur à l'ouverture du LIMS")
