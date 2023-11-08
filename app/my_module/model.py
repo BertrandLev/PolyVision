@@ -1,6 +1,4 @@
-import typing
 from PyQt6 import QtCore
-from PyQt6.QtCore import QAbstractItemModel, QModelIndex, QObject
 from PyQt6.QtSql import QSqlQueryModel
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 
@@ -62,8 +60,7 @@ class QuickQuery(QtCore.QAbstractTableModel):
             TEST.ANALYSIS as Analysis , 
             TEST.REPLICATE_COUNT as Replicate , 
             RESULT.NAME as Result_Name , 
-            RESULT.FORMATTED_ENTRY as Result , 
-            SAMPLE.SAMPLE_NUMBER  
+            RESULT.FORMATTED_ENTRY as Result
         from ((((((
             SAMPLE
             INNER JOIN PROJECT ON SAMPLE.PROJECT = PROJECT.NAME) 
@@ -88,36 +85,49 @@ class GroupbyColumnTableModel(QStandardItemModel):
     """
     A completer
     """
-    def __init__(self, groupColumn:int = 0, parent = None) -> None:
+    def __init__(self, groupColumns:list = [0], parent = None) -> None:
         super(QStandardItemModel,self).__init__(parent)
-        self._groupColumn = groupColumn
-        self.setHorizontalHeaderLabels()
+        self._groupColumns = groupColumns
 
     def setSourceModel(self, sourceModel: QSqlQueryModel) -> None:
+        def add_to_dict(my_dict, keys, value):
+            key = keys[0]
+            if len(keys) == 1:
+                if key not in my_dict:
+                    my_dict[key] = set()
+                my_dict[key].add(value)
+            else:
+                if key not in my_dict:
+                    my_dict[key] = {}
+                add_to_dict(my_dict[key], keys[1:], value)
+        
         self.clear()
         group_values = {}
-
         #Extract unique value from groupbycolumn and all row that belong to this value
         for row in range(sourceModel.rowCount()):
-            index = sourceModel.index(row,self._groupColumn)
-            group_name = sourceModel.data(index)
-            if not group_name in group_values.keys():
-                group_values[group_name] = set()
-            group_values[group_name].add(row)
+            keys = []
+            for col in self._groupColumns:
+                keys.append(sourceModel.data(sourceModel.index(row,col)))
+            add_to_dict(group_values, keys, row)
         
         #Add item in model
-        for key,rows in group_values.items():
-            group_item = QStandardItem(str(key))
-            self.appendRow(group_item)
-            for row in rows:
-                first_value = QStandardItem(str(sourceModel.data(sourceModel.index(row,1))))
-                second_value = QStandardItem(str(sourceModel.data(sourceModel.index(row,2))))
-                group_item.appendRow([QStandardItem(""),first_value, second_value])
-                # first_value.appendColumn(
-                #     [QStandardItem(str(sourceModel.data(sourceModel.index(row,col)))) for col in range(1,sourceModel.columnCount())])
-                # group_item.appendRow(
-                #     [QStandardItem(str(sourceModel.data(sourceModel.index(row,col)))) for col in range(1,sourceModel.columnCount())])
-        self.setHorizontalHeaderLabels()
+        def add_to_model(parent,my_dict:dict):
+            for key, items in my_dict.items():
+                child = QStandardItem(str(key))
+                parent.appendRow(child)
+                if isinstance(items,dict):
+                    add_to_model(child,items)
+                else:
+                    for row in items:
+                        parent.appendRow([QStandardItem("")] +
+                            [QStandardItem(str(sourceModel.data(sourceModel.index(row,col)))) 
+                            for col in range(sourceModel.columnCount()) if col not in self._groupColumns])
+
+        add_to_model(self,group_values)
         
-    def setHorizontalHeaderLabels(self, labels=None) -> None:
-        super().setHorizontalHeaderLabels(['DDT','Sample_number','Sample_ID'])
+        header_values = [""] + [sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole)
+                        for col in range(sourceModel.columnCount()) if col not in self._groupColumns]
+        self.setHorizontalHeaderLabels(header_values)
+        
+    
+#CPO-CPR-23-0105

@@ -83,7 +83,7 @@ class RequestTab(QWidget):
         super().__init__()
         self.query = QuickQuery()
         self.lims_table_data = QSqlQueryModel()
-        self.lims_tree_data = GroupbyColumnTableModel()
+        self.lims_tree_data = GroupbyColumnTableModel([4,5,1,6,7])
         layout = QVBoxLayout()
 
         # Grid Layout
