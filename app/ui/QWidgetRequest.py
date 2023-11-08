@@ -1,7 +1,7 @@
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (QTableView, QTreeView, QWidget, QVBoxLayout, QComboBox,
                              QGroupBox, QPushButton, QGridLayout, QLabel,
-                             QLineEdit, QMenu, QHeaderView, QHeaderView)
+                             QLineEdit, QMenu, QSplitter, QHeaderView)
 from PyQt6.QtGui import QAction
 from PyQt6.QtSql import QSqlQuery, QSqlQueryModel, QSqlDatabase
 from my_module.model import QuickQuery, GroupbyColumnTableModel
@@ -83,12 +83,11 @@ class RequestTab(QWidget):
         super().__init__()
         self.query = QuickQuery()
         self.lims_table_data = QSqlQueryModel()
-        self.lims_tree_data = GroupbyColumnTableModel([4,5,6,7])
+        self.lims_tree_data = GroupbyColumnTableModel([2,3,4,5])
         layout = QVBoxLayout()
 
         # Grid Layout
         grid_layout = QGridLayout()
-
         # Left Part of the Grid Layout
         # Top: Search Mode ComboBox
         search_mode_combobox = QComboBox()
@@ -99,27 +98,39 @@ class RequestTab(QWidget):
 
         # Middle: Group Box
         groupbox_left = QuickSearch(self.query)        
-        grid_layout.addWidget(groupbox_left, 1, 0, 1, 2)  # row 1, column 0, span 1 row, 2 columns
+        grid_layout.addWidget(groupbox_left, 1, 0, 2, 2)  # row 1, column 0, span 1 row, 2 columns
 
         # Bottom: Preview Button
-        preview_button = QPushButton("Preview")
+        preview_button = QPushButton("Launch Query")
         preview_button.clicked.connect(lambda: self.preview_query(search_mode_combobox))
-        grid_layout.addWidget(preview_button, 2, 0, 1, 2)  # row 2, column 0, span 1 row, 2 columns
+        grid_layout.addWidget(preview_button, 3, 0, 1, 2)  # row 2, column 0, span 1 row, 2 columns
 
         # Right Part of the Grid Layout
-        # Middle: Group Box
+        # Use of a splitter
+        splitter  = QSplitter(self)
+        splitter.setOrientation(QtCore.Qt.Orientation.Vertical)
+        grid_layout.addWidget(splitter, 1,2,2,1)
+        # Top
+        upper_pannel = QWidget(splitter)
+        upper_pannel_layout = QVBoxLayout(upper_pannel)
         self.query_result = QTableView()
         self.query_result.setModel(self.lims_table_data)
-        grid_layout.addWidget(self.query_result, 1, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
+        upper_pannel_layout.addWidget(self.query_result)  # row 1, column 2, span 1 row, 1 column
+        # Bot
+        bot_pannel = QWidget(splitter)
+        bot_pannel_layout = QVBoxLayout(bot_pannel)        
         self.queryTree_result = QTreeView()
-
         self.queryTree_result.setModel(self.lims_tree_data)
-        grid_layout.addWidget(self.queryTree_result, 2, 2, 1, 1)  # row 1, column 2, span 1 row, 1 column
+        bot_pannel_layout.addWidget(self.queryTree_result)  # row 1, column 2, span 1 row, 1 column
 
+        
         # Bottom: Send to Selection Button
         send_to_selection_button = QPushButton("Send to Selection")
         grid_layout.addWidget(send_to_selection_button, 3, 2, 1, 1)  # row 2, column 2, span 1 row, 1 column
 
+
+        grid_layout.setColumnMinimumWidth(1, 150)
+        grid_layout.setColumnStretch(2, 1)
         layout.addLayout(grid_layout)
         self.setLayout(layout)
 

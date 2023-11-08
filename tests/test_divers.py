@@ -1,93 +1,37 @@
-import sys
-from PyQt6.QtCore import Qt, QModelIndex, QAbstractProxyModel
-from PyQt6.QtWidgets import QApplication, QTableView, QTreeView, QSplitter, QVBoxLayout, QWidget
-from PyQt6.QtGui import QStandardItemModel, QStandardItem
+from PyQt6.QtWidgets import QApplication, QMainWindow, QSplitter, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
 
-class CustomProxyModel(QAbstractProxyModel):
+class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.sourceModel = None
 
-    def setSourceModel(self, sourceModel):
-        self.sourceModel = sourceModel
+        # Create a splitter widget
+        splitter = QSplitter(self)
 
-    def mapToSource(self, proxyIndex):
-        if not proxyIndex.isValid():
-            return QModelIndex()
-        sourceParent = self.sourceModel.index(0, 0)
-        sourceIndex = self.sourceModel.index(proxyIndex.row(), proxyIndex.column() - 2, sourceParent)
-        return sourceIndex
+        # Create a left panel widget
+        left_panel = QWidget(splitter)
+        left_panel_layout = QVBoxLayout(left_panel)
+        left_panel_layout.addWidget(QPushButton("Button 1"))
+        left_panel_layout.addWidget(QPushButton("Button 2"))
 
-    def mapFromSource(self, sourceIndex):
-        if not sourceIndex.isValid():
-            return QModelIndex()
-        row = sourceIndex.row()
-        column = sourceIndex.column() + 2
-        return self.createIndex(row, column)
+        # Create a right panel widget
+        right_panel = QWidget(splitter)
+        right_panel_layout = QVBoxLayout(right_panel)
+        right_panel_layout.addWidget(QPushButton("Button 3"))
+        right_panel_layout.addWidget(QPushButton("Button 4"))
 
-    def index(self, row, column, parent=QModelIndex()):
-        if not self.hasIndex(row, column, parent):
-            return QModelIndex()
+        # Add the panels to the splitter widget
+        splitter.addWidget(left_panel)
+        splitter.addWidget(right_panel)
 
-        if not parent.isValid():
-            sourceParent = self.sourceModel.index(row, 0)
-        else:
-            sourceParent = self.mapToSource(parent)
+        # Set the splitter widget as the central widget of the main window
+        self.setCentralWidget(splitter)
 
-        sourceIndex = self.sourceModel.index(row, column - 2, sourceParent)
-        return self.mapFromSource(sourceIndex)
+        # Create a button to show/hide the left panel
+        toggle_button = QPushButton("Toggle Left Panel", self)
+        toggle_button.clicked.connect(lambda: left_panel.setVisible(not left_panel.isVisible()))
+        self.addToolBar("Toggle").addWidget(toggle_button)
 
-    def parent(self, proxyIndex):
-        sourceIndex = self.mapToSource(proxyIndex)
-        sourceParent = sourceIndex.parent()
-        return self.mapFromSource(sourceParent)
-
-    def rowCount(self, parent=QModelIndex()):
-        if not parent.isValid():
-            return self.sourceModel.rowCount()
-        else:
-            return 0
-
-    def columnCount(self, parent=QModelIndex()):
-        if not parent.isValid():
-            return self.sourceModel.columnCount() + 2
-        else:
-            return 0
-
-
-class Example(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
-
-    def initUI(self):
-        sourceModel = QStandardItemModel(4, 3)
-        for row in range(4):
-            for column in range(3):
-                item = QStandardItem(f"Item {row}-{column}")
-                sourceModel.setItem(row, column, item)
-
-        proxyModel = CustomProxyModel()
-        proxyModel.setSourceModel(sourceModel)
-
-        splitter = QSplitter()
-        tableView = QTableView()
-        tableView.setModel(sourceModel)
-
-        treeView = QTreeView()
-        treeView.setModel(proxyModel)
-
-        splitter.addWidget(tableView)
-        splitter.addWidget(treeView)
-
-        layout = QVBoxLayout()
-        layout.addWidget(splitter)
-        self.setLayout(layout)
-        self.setWindowTitle('Proxy Model Example')
-        self.show()
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    ex = Example()
-    sys.exit(app.exec())
+app = QApplication([])
+window = MainWindow()
+window.show()
+app.exec()

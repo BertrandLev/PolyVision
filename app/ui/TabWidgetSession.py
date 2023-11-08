@@ -1,5 +1,6 @@
-from PyQt6.QtWidgets import (QTabWidget)
-
+import typing
+from PyQt6.QtWidgets import (QTabWidget, QWidget, QToolBar, QMainWindow)
+from PyQt6.QtGui import QAction
 from ui.QWidgetRequest import RequestTab
 from ui.QWidgetSelection import SelectionTab
 from ui.QWidgetAnalysis import AnalysisTab
@@ -18,9 +19,9 @@ class Session(QTabWidget):
     Returns:
         
     """
-    def __init__(self):
-        super().__init__()
-        
+    def __init__(self, parent: QMainWindow) -> None:
+        super(Session,self).__init__(parent)
+
         # Création des quatres onglets
         self.request_tab = RequestTab()
         self.addTab(self.request_tab, "Request")
@@ -30,4 +31,3 @@ class Session(QTabWidget):
         self.addTab(self.analysis_tab, "Analysis")
         self.export_tab = ExportTab()
         self.addTab(self.export_tab, "Export")
-    

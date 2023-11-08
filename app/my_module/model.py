@@ -53,8 +53,6 @@ class QuickQuery(QtCore.QAbstractTableModel):
         select distinct 
             PROJECT.NAME as Project_Name , 
             SAMPLE.SAMPLE_NUMBER as Sample_Number , 
-            SAMPLE.TEXT_ID as Sample_ID , 
-            SAMPLE.STATUS as Sample_Status , 
             SAMPLE.PRODUCT as Product , 
             SAMPLE.MATERIAL_NAME as Material_Name , 
             TEST.ANALYSIS as Analysis , 

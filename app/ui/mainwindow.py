@@ -17,10 +17,10 @@ class MainWindow(QMainWindow):
         # Tool bar
         toolbar = QToolBar("My main toolbar")
         self.addToolBar(toolbar)
-
+        
         # Menu Bar
         menubar = self.menuBar()
-        
+       
         # File Menu
         file_menu = menubar.addMenu("File")
         
@@ -48,10 +48,9 @@ class MainWindow(QMainWindow):
         about_action = QAction("About", self)
         about_action.triggered.connect(self.showAboutDialog)
         help_menu.addAction(about_action)
-        toolbar.addAction(about_action)
-
+        
     def session_new(self):
-        self.session = Session()
+        self.session = Session(self)
         self.setCentralWidget(self.session)
 
     def session_close(self):
