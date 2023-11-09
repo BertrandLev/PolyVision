@@ -83,11 +83,12 @@ class RequestTab(QWidget):
         super().__init__()
         self.query = QuickQuery()
         self.lims_table_data = QSqlQueryModel()
-        self.lims_tree_data = GroupbyColumnTableModel([2,3,4,5])
+        self.lims_tree_data = GroupbyColumnTableModel([0,1,4,5])
         layout = QVBoxLayout()
 
         # Grid Layout
         grid_layout = QGridLayout()
+        
         # Left Part of the Grid Layout
         # Top: Search Mode ComboBox
         search_mode_combobox = QComboBox()
@@ -95,11 +96,9 @@ class RequestTab(QWidget):
         search_mode_combobox.addItem("Advanced Search")
         search_mode_combobox.currentIndexChanged.connect(self.onSearchModeChanged)  # Connect signal to a method
         grid_layout.addWidget(search_mode_combobox, 0, 0, 1, 2)  # row 0, column 0, span 1 row, 2 columns
-
         # Middle: Group Box
         groupbox_left = QuickSearch(self.query)        
         grid_layout.addWidget(groupbox_left, 1, 0, 2, 2)  # row 1, column 0, span 1 row, 2 columns
-
         # Bottom: Preview Button
         preview_button = QPushButton("Launch Query")
         preview_button.clicked.connect(lambda: self.preview_query(search_mode_combobox))
@@ -109,30 +108,47 @@ class RequestTab(QWidget):
         # Use of a splitter
         splitter  = QSplitter(self)
         splitter.setOrientation(QtCore.Qt.Orientation.Vertical)
-        grid_layout.addWidget(splitter, 1,2,2,1)
+        grid_layout.addWidget(splitter, 0,2,3,1)  # row 1, column 2, span 2 row, 1 column
         # Top
         upper_pannel = QWidget(splitter)
         upper_pannel_layout = QVBoxLayout(upper_pannel)
         self.query_result = QTableView()
         self.query_result.setModel(self.lims_table_data)
-        upper_pannel_layout.addWidget(self.query_result)  # row 1, column 2, span 1 row, 1 column
+        upper_pannel_layout.addWidget(self.query_result) 
         # Bot
         bot_pannel = QWidget(splitter)
-        bot_pannel_layout = QVBoxLayout(bot_pannel)        
+        bot_pannel_layout = QGridLayout(bot_pannel)        
+        tree_mode_combobox = QComboBox()
+        tree_mode_combobox.setEnabled = False
+        tree_mode_combobox.addItem("Groupby DDT")
+        tree_mode_combobox.addItem("Groupby Material")
+        tree_mode_combobox.currentIndexChanged.connect(self.onTreeModeChanged)  # Connect signal to a method
+        bot_pannel_layout.addWidget(tree_mode_combobox,0,0,1,1)
+        bot_pannel_layout.addWidget(QWidget(),0,1,1,1)
         self.queryTree_result = QTreeView()
         self.queryTree_result.setModel(self.lims_tree_data)
-        bot_pannel_layout.addWidget(self.queryTree_result)  # row 1, column 2, span 1 row, 1 column
-
-        
+        bot_pannel_layout.addWidget(self.queryTree_result,1,0,1,2)  # row 1, column 2, span 1 row, 1 column
+        bot_pannel_layout.setColumnMinimumWidth(0, 150)
+        bot_pannel_layout.setColumnStretch(1, 1)
         # Bottom: Send to Selection Button
         send_to_selection_button = QPushButton("Send to Selection")
         grid_layout.addWidget(send_to_selection_button, 3, 2, 1, 1)  # row 2, column 2, span 1 row, 1 column
-
 
         grid_layout.setColumnMinimumWidth(1, 150)
         grid_layout.setColumnStretch(2, 1)
         layout.addLayout(grid_layout)
         self.setLayout(layout)
+
+    def onTreeModeChanged(self, index):
+        display_mode = index  # 0 for groupby DDT, 1 for groupby Material
+        if display_mode == 0:
+            print("Switched to groupby DDT mode")
+            self.lims_tree_data.groupColumns = [0,1,4,5]
+        else:
+            print("Switched to groupby Material mode")
+            self.lims_tree_data.groupColumns = [2,3,4,5]
+        if self.lims_tree_data.rowCount()>0:
+            self.lims_tree_data.setSourceModel(self.lims_table_data)
 
     def onSearchModeChanged(self, index):
         pass
@@ -148,6 +164,7 @@ class RequestTab(QWidget):
             my_query = QSqlQuery(self.query.createQuery(), con)
             self.lims_table_data.setQuery(my_query)
             self.lims_tree_data.setSourceModel(self.lims_table_data)
+            
             print("End of data update")
         else:
             print("erreur à l'ouverture du LIMS")

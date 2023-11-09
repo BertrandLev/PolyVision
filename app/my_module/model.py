@@ -87,6 +87,16 @@ class GroupbyColumnTableModel(QStandardItemModel):
         super(QStandardItemModel,self).__init__(parent)
         self._groupColumns = groupColumns
 
+    @property
+    def groupColumns(self):
+        return self._groupColumns
+    
+    @groupColumns.setter
+    def groupColumns(self, list_value:list[int]):
+        if any(value < 0 for value in list_value):
+            raise ValueError("Value must be positive")
+        self._groupColumns = list_value            
+
     def setSourceModel(self, sourceModel: QSqlQueryModel) -> None:
         def add_to_dict(my_dict, keys, value):
             key = keys[0]
@@ -99,6 +109,9 @@ class GroupbyColumnTableModel(QStandardItemModel):
                     my_dict[key] = {}
                 add_to_dict(my_dict[key], keys[1:], value)
         
+        if max(self.groupColumns)>sourceModel.columnCount(): # test if groupColumn match with the new model
+            raise ValueError("Groupby column value is higher than the number of column in the model")
+
         self.clear()
         group_values = {}
         #Extract unique value from groupbycolumn and all row that belong to this value
@@ -122,7 +135,7 @@ class GroupbyColumnTableModel(QStandardItemModel):
                             for col in range(sourceModel.columnCount()) if col not in self._groupColumns])
 
         add_to_model(self,group_values)
-        
+
         header_values = [""] + [sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole)
                         for col in range(sourceModel.columnCount()) if col not in self._groupColumns]
         self.setHorizontalHeaderLabels(header_values)
