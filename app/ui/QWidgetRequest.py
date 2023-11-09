@@ -1,7 +1,7 @@
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (QTableView, QTreeView, QWidget, QVBoxLayout, QComboBox,
                              QGroupBox, QPushButton, QGridLayout, QLabel,
-                             QLineEdit, QMenu, QSplitter, QHeaderView)
+                             QLineEdit, QMenu, QSplitter, QHeaderView, QAbstractItemView)
 from PyQt6.QtGui import QAction
 from PyQt6.QtSql import QSqlQuery, QSqlQueryModel, QSqlDatabase
 from my_module.model import QuickQuery, GroupbyColumnTableModel
@@ -23,6 +23,7 @@ class QuickSearch(QGroupBox):
         # Second Line: Element Label, Text Entry, Add Button, List Button
         element_label = QLabel("Element:")
         value_entry = QLineEdit()
+        value_entry.returnPressed.connect(lambda: self.addToTable(search_by_dropdown, value_entry, query))
         add_button = QPushButton("Add")
         add_button.clicked.connect(lambda: self.addToTable(search_by_dropdown, value_entry, query))
         list_button = QPushButton("...")
@@ -39,13 +40,12 @@ class QuickSearch(QGroupBox):
         # Fourth Line: List Widget
         search_table = QTableView()
         search_table.setModel(query)
-        search_table.setColumnWidth(0,140)
+        search_table.setColumnWidth(0,110)
         search_table.setColumnWidth(1,80)
         search_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         search_table.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
-        # search_table.verticalHeader().setVisible(True)
-        # search_table.setShowGrid(True)
-        search_table.verticalHeader().setFixedWidth(25)
+        search_table.verticalHeader().setFixedWidth(20)
+        search_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
         # Add table features
         search_table.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
@@ -115,12 +115,15 @@ class RequestTab(QWidget):
         # Use of a splitter
         splitter  = QSplitter(self)
         splitter.setOrientation(QtCore.Qt.Orientation.Vertical)
-        grid_layout.addWidget(splitter, 0,2,3,1)  # row 1, column 2, span 2 row, 1 column
+        grid_layout.addWidget(splitter, 0,2,3,1)  # row 1, column 2, span 3 row, 1 column
         # Top
         upper_pannel = QWidget(splitter)
         upper_pannel_layout = QVBoxLayout(upper_pannel)
         self.query_result = QTableView()
         self.query_result.setModel(self.lims_table_data)
+        self.query_result.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.query_result.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.query_result.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         upper_pannel_layout.addWidget(self.query_result) 
         # Bot
         bot_pannel = QWidget(splitter)
@@ -133,9 +136,13 @@ class RequestTab(QWidget):
         bot_pannel_layout.addWidget(tree_mode_combobox,0,0,1,1)
         bot_pannel_layout.addWidget(QWidget(),0,1,1,1)
         self.queryTree_result = QTreeView()
+        self.queryTree_result.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.queryTree_result.setModel(self.lims_tree_data)
+        self.queryTree_result.setExpandsOnDoubleClick(True)    
+        self.queryTree_result.header().setMinimumSectionSize(150)
+        self.queryTree_result.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.queryTree_result.header().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         bot_pannel_layout.addWidget(self.queryTree_result,1,0,1,2)  # row 1, column 2, span 1 row, 1 column
-        bot_pannel_layout.setColumnMinimumWidth(0, 150)
         bot_pannel_layout.setColumnStretch(1, 1)
         # Bottom: Send to Selection Button
         send_to_selection_button = QPushButton("Send to Selection")

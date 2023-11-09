@@ -6,7 +6,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Data Analysis Application")
-        self.setGeometry(100, 100, 1200, 800)  # Set initial window size
+        self.setGeometry(100, 100, 1400, 900)  # Set initial window size
         
         # Session variable
         self.session = None

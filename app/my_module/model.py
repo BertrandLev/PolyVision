@@ -1,8 +1,10 @@
+import typing
 from PyQt6 import QtCore
 from PyQt6.QtSql import QSqlQueryModel
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 
-
+#CPO-CPR-23-0105
+ 
 class QuickQuery(QtCore.QAbstractTableModel):
     """
     A class to manage the creation of SQL queries.
@@ -38,9 +40,10 @@ class QuickQuery(QtCore.QAbstractTableModel):
     def headerData(self, section, orientation, role):
         # section is the index of the column/row.
         Titre_Col = ['Field','Operator','Value']
+        column = Titre_Col[section]
         if orientation == QtCore.Qt.Orientation.Horizontal:
             if role == QtCore.Qt.ItemDataRole.DisplayRole:
-                return str(Titre_Col[section])
+                return column
             
         return super().headerData(section, orientation, role)
 
@@ -88,7 +91,8 @@ class QuickQuery(QtCore.QAbstractTableModel):
                 sql_query = sql_query + f" or {dict_conversion[key]} IN ({my_string})"
 
         return sql_query
-    
+
+
 class GroupbyColumnTableModel(QStandardItemModel):
     """
     A completer
@@ -149,6 +153,3 @@ class GroupbyColumnTableModel(QStandardItemModel):
         header_values = [""] + [sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole)
                         for col in range(sourceModel.columnCount()) if col not in self._groupColumns]
         self.setHorizontalHeaderLabels(header_values)
-        
-    
-#CPO-CPR-23-0105
