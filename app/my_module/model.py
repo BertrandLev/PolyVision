@@ -12,7 +12,7 @@ class QuickQuery(QtCore.QAbstractTableModel):
     """
     def __init__(self) -> None:
         super(QuickQuery, self).__init__()
-        self._data = [("","","")]
+        self._data = []
         
 
     def add_to_data(self, list_values:list):

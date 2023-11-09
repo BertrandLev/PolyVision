@@ -43,7 +43,10 @@ class QuickSearch(QGroupBox):
         search_table.setColumnWidth(1,80)
         search_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         search_table.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
-        query._data.pop()
+        # search_table.verticalHeader().setVisible(True)
+        # search_table.setShowGrid(True)
+        search_table.verticalHeader().setFixedWidth(25)
+
         # Add table features
         search_table.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         search_table.customContextMenuRequested.connect(lambda event: self.openTableContextMenu(event,search_table, query))
