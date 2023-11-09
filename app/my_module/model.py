@@ -12,17 +12,25 @@ class QuickQuery(QtCore.QAbstractTableModel):
     """
     def __init__(self) -> None:
         super(QuickQuery, self).__init__()
-        self.conditions = []
+        self._data = [("","","")]
+        
+
+    def add_to_data(self, list_values:list):
+        if len(list_values)==3:
+            self._data.append(list_values)
 
     def data(self, index, role):
         if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            return self.conditions[index.row()][index.column()]
+            value = self._data[index.row()][index.column()]
+            if isinstance(value,float):
+                return "%.2f" % value
+            return value
         
         if role == QtCore.Qt.ItemDataRole.TextAlignmentRole:
             return QtCore.Qt.AlignmentFlag.AlignCenter
 
     def rowCount(self, index) -> int:
-        return len(self.conditions)
+        return len(self._data)
 
     def columnCount(self, index):
         return 3
@@ -30,13 +38,15 @@ class QuickQuery(QtCore.QAbstractTableModel):
     def headerData(self, section, orientation, role):
         # section is the index of the column/row.
         Titre_Col = ['Field','Operator','Value']
-        if role == QtCore.Qt.ItemDataRole.DisplayRole:
-            if orientation == QtCore.Qt.Orientation.Horizontal:
+        if orientation == QtCore.Qt.Orientation.Horizontal:
+            if role == QtCore.Qt.ItemDataRole.DisplayRole:
                 return str(Titre_Col[section])
+            
+        return super().headerData(section, orientation, role)
 
-    def conditions_to_dict(self) -> dict:
+    def model_to_dict(self) -> dict:
         dict_cond = dict()
-        for condition in self.conditions:
+        for condition in self._data:
             if not condition[0] in dict_cond.keys():
                 dict_cond[condition[0]] = [condition[2]]
             else:
@@ -52,7 +62,7 @@ class QuickQuery(QtCore.QAbstractTableModel):
         sql_query = """
         select distinct 
             PROJECT.NAME as Project_Name , 
-            SAMPLE.SAMPLE_NUMBER as Sample_Number , 
+            CAST(SAMPLE.SAMPLE_NUMBER AS INT) as Sample_Number , 
             SAMPLE.PRODUCT as Product , 
             SAMPLE.MATERIAL_NAME as Material_Name , 
             TEST.ANALYSIS as Analysis , 
@@ -70,7 +80,7 @@ class QuickQuery(QtCore.QAbstractTableModel):
         where (
             SAMPLE.GROUP_NAME IN ( 'FELR' , 'CAR' , 'RHE' , 'SYSTEM_ANALYSIS' , 'CHEM_INV' , 'POLY' , 'DEFAULT' , 'MEC'))
             """
-        for i, (key, value) in enumerate(self.conditions_to_dict().items()):
+        for i, (key, value) in enumerate(self.model_to_dict().items()):
             my_string = ', '.join(f"'{item}'" for item in value)
             if i == 0:
                 sql_query = sql_query + f"and {dict_conversion[key]} IN ({my_string})"

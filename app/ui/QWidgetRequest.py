@@ -39,7 +39,11 @@ class QuickSearch(QGroupBox):
         # Fourth Line: List Widget
         search_table = QTableView()
         search_table.setModel(query)
-
+        search_table.setColumnWidth(0,140)
+        search_table.setColumnWidth(1,80)
+        search_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        search_table.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
+        query._data.pop()
         # Add table features
         search_table.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         search_table.customContextMenuRequested.connect(lambda event: self.openTableContextMenu(event,search_table, query))
@@ -53,7 +57,7 @@ class QuickSearch(QGroupBox):
         field = field_entry.currentText()
         value = value_entry.text()
         if value:
-            query.conditions.append((field,"=",value))
+            query.add_to_data((field,"=",value))
             query.layoutChanged.emit()
             value_entry.setText("")
 
@@ -61,7 +65,7 @@ class QuickSearch(QGroupBox):
         indexes = tableView.selectedIndexes()
         if indexes:
             for index in indexes:
-                del query.conditions[index.row()]
+                del query._data[index.row()]
             query.layoutChanged.emit()
             tableView.clearSelection()
 
