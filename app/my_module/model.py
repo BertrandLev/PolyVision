@@ -111,7 +111,7 @@ class GroupbyColumnTableModel(QStandardItemModel):
             raise ValueError("Value must be positive")
         self._groupColumns = list_value            
 
-    def setSourceModel(self, sourceModel: QSqlQueryModel) -> None:
+    def setSourceModel(self, sourceModel: QtCore.QAbstractTableModel) -> None:
         def add_to_dict(my_dict, keys, value):
             key = keys[0]
             if len(keys) == 1:
@@ -158,3 +158,73 @@ class GroupbyColumnTableModel(QStandardItemModel):
         header_values = [""] + [str(sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole))
                         for col in range(sourceModel.columnCount()) if col not in self._groupColumns]
         self.setHorizontalHeaderLabels(header_values)
+
+
+class PivotResultTableModel(QStandardItemModel):
+    """
+    Pivote les colonnes Result_Name et Result
+    A completer
+    """
+    def __init__(self,parent = None) -> None:
+        super(QStandardItemModel,self).__init__(parent)
+
+    def setSourceModel(self, sourceModel: QtCore.QAbstractTableModel) -> None:
+        """
+        A completer
+        """       
+        def add_to_dict(my_dict, keys, value):
+            key = keys[0] + "_" + keys[1]
+            if key not in my_dict:
+                my_dict[key] = set()
+            my_dict[key].add(value)
+            
+        self.clear()
+        header_values = []
+        pivot_index = {}
+        group_index = {}
+        for col in range(sourceModel.columnCount()):
+            column_name = sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole)
+            if column_name in ('Analysis','Result_name','Result'):
+                pivot_index[column_name] = col
+            else:
+                group_index[column_name] = col
+                header_values.append(column_name)
+  
+        new_headers = []
+        groups_row = {}
+        for row in range(sourceModel.rowCount()):
+            # Trouve les lignes correspondant aux couples unique des colonnes non pivotées
+            keys = []
+            for col in group_index:
+                keys.append(sourceModel.data(sourceModel.index(row,col)))
+            add_to_dict(groups_row,keys,row)
+            # Récupère les couples (analyses,result_name)
+            header = sourceModel.data(sourceModel.index(row,pivot_index['Analysis'])) + "_" + sourceModel.data(sourceModel.index(row,pivot_index['Result_name']))
+            new_headers.append(header)
+
+        header_values = header_values + new_headers # ajoute les colonnes aux headers
+        
+        #Add item in model
+        def add_to_model(parent,my_dict:dict):
+            for key, items in my_dict.items():
+                child = QStandardItem(str(key))
+                parent.appendRow(child)
+                if isinstance(items,dict):
+                    add_to_model(child,items)
+                else:
+                    for row in items:
+                        parent.appendRow([QStandardItem("")] +
+                            [QStandardItem(str(sourceModel.data(sourceModel.index(row,col)))) 
+                            for col in range(sourceModel.columnCount()) if col not in self._groupColumns])
+
+        add_to_model(self,group_values)
+
+    
+        
+
+
+
+
+        # header_values = [""] + [sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole)
+        #                 for col in range(sourceModel.columnCount()) if col not in self._groupColumns]
+        # self.setHorizontalHeaderLabels(header_values)

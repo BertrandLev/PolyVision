@@ -84,7 +84,7 @@ class groupPandasModel(QStandardItemModel):
         header_values = [""] + [col for col in data.columns.values if col not in columns]
         self.setHorizontalHeaderLabels(header_values)
 
-class MainWindow(QMainWindow):
+class MultiLevelHeaderExample(QWidget):
     def __init__(self):
         super().__init__()
 
@@ -124,8 +124,61 @@ class MainWindow(QMainWindow):
         group_model = model.GroupbyColumnTableModel()
         group_model.setSourceModel(table_model)
 
-        # Create a splitter widget
-        splitter = QSplitter(self)
+        data = [["sample",4,5,6],
+                ["model",45,67,90],
+                ["sample",4,45,9],
+                ["model",3,5,7],
+                ["sample",5,34,5]]
+        
+        # model pandas
+        data_df = pd.DataFrame(data, columns=["colA","colB","colC","colD"])
+        model_pandas = pandasModel(data_df)
+        
+        group_model_pandas = groupPandasModel(data_df,["colA","colB"])
+
+        # Creation du model table
+        table_model = QStandardItemModel(4,4)
+        for row in range(table_model.rowCount()):
+            for col in range(table_model.columnCount()):
+                idx = table_model.index(row,col)
+                table_model.setData(idx,data[row][col],QtCore.Qt.ItemDataRole.DisplayRole)
+
+        #Creation du model arbre
+        tree_model = QStandardItemModel()
+        for row, columns in enumerate(data):
+            root = QStandardItem()
+            root.setData(data[row][0],QtCore.Qt.ItemDataRole.DisplayRole)
+            tree_model.appendRow(root)
+            values = []
+            for col in columns[1:]:
+                item = QStandardItem()
+                item.setData(col,QtCore.Qt.ItemDataRole.DisplayRole)
+                values.append(item)
+            root.appendRow(values)
+        tree_model.setHorizontalHeaderLabels(["1","2","3"])
+
+        group_model = model.GroupbyColumnTableModel()
+        group_model.setSourceModel(table_model)
+
+        self.initUI()
+
+    def initUI(self):
+        self.setGeometry(100, 100, 800, 600)
+        self.setWindowTitle('Multi-Level Header Example')
+
+        data = [
+            ["Row 1", "Data 1-1", "Data 1-2", "Data 1-3", "Data 1-4", "Data 1-5"],
+            ["Row 2", "Data 2-1", "Data 2-2", "Data 2-3", "Data 2-4", "Data 2-5"],
+            ["Row 3", "Data 3-1", "Data 3-2", "Data 3-3", "Data 3-4", "Data 3-5"]
+        ]
+
+        table = QTableWidget(self)
+        table.setRowCount(len(data))
+        table.setColumnCount(len(data[0]))
+
+        for i, row in enumerate(data):
+            for j, item in enumerate(row):
+                table.setItem(i, j, QTableWidgetItem(item))
 
         # Create a left panel widget
         left_panel = QWidget(splitter)
@@ -141,12 +194,12 @@ class MainWindow(QMainWindow):
         right_panel_layout = QVBoxLayout(right_panel)
         right_panel_layout.addWidget(right_tree_view)
 
-        # Add the panels to the splitter widget
-        splitter.addWidget(left_panel)
-        splitter.addWidget(right_panel)
+        # Set up multi-level header model
+        header_model = MultiLevelHeaderModel(1, 15, self)
+        table.setHorizontalHeaderModel(header_model)
 
-        # Set the splitter widget as the central widget of the main window
-        self.setCentralWidget(splitter)
+        # Allow selecting entire rows
+        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
 
 app = QApplication([])
 window = MainWindow()
