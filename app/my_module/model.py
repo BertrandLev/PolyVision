@@ -136,20 +136,25 @@ class GroupbyColumnTableModel(QStandardItemModel):
             add_to_dict(group_values, keys, row)
         
         #Add item in model
-        def add_to_model(parent,my_dict:dict):
+        def add_to_model(parent:QStandardItem,my_dict:dict):
             for key, items in my_dict.items():
-                child = QStandardItem(str(key))
+                child = QStandardItem()
+                child.setData(key,QtCore.Qt.ItemDataRole.DisplayRole)
                 parent.appendRow(child)
                 if isinstance(items,dict):
                     add_to_model(child,items)
                 else:
                     for row in items:
-                        parent.appendRow([QStandardItem("")] +
-                            [QStandardItem(str(sourceModel.data(sourceModel.index(row,col)))) 
-                            for col in range(sourceModel.columnCount()) if col not in self._groupColumns])
+                        values = [QStandardItem("")]
+                        for col in range(sourceModel.columnCount()):
+                            if col not in self._groupColumns:
+                                item = QStandardItem()
+                                item.setData(sourceModel.data(sourceModel.index(row,col)),QtCore.Qt.ItemDataRole.DisplayRole)
+                                values.append(item)
+                        parent.appendRow(values)
 
         add_to_model(self,group_values)
 
-        header_values = [""] + [sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole)
+        header_values = [""] + [str(sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole))
                         for col in range(sourceModel.columnCount()) if col not in self._groupColumns]
         self.setHorizontalHeaderLabels(header_values)
