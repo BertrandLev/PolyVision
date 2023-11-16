@@ -56,30 +56,36 @@ class groupPandasModel(QStandardItemModel):
         self.create_model(data,columns)
 
     def create_model(self, data:pd.DataFrame, columns:list[str]) -> any:
-        # def add_key(parent:QStandardItem,keys,values:pd.DataFrame) -> QStandardItem:
-        #     if len(keys) > 1:
-        #         key = QStandardItem()
-        #         key.setData(keys[0],Qt.ItemDataRole.DisplayRole)
-        #         parent.appendRow(key)
-        #         add_key(key,keys[1:],values)
-        #     else:
-        #         key = QStandardItem()
-        #         key.setData(keys[0],Qt.ItemDataRole.DisplayRole)
-        #         parent.appendRow(key)
-        #         for row,cols in values.iterrows():
-        #             items = [QStandardItem("")]
-        #             for col in values.columns.values:
-        #                 if col not in columns:
-        #                     item = QStandardItem()
-        #                     item.setData(cols[col],Qt.ItemDataRole.DisplayRole)
-        #                     items.append(item)
-        #             key.appendRow(items)
-
-        def is_key_exist(parent,value) -> QStandardItem:
+        def is_key_exist(parent:QStandardItem, key:str) -> QStandardItem:
+            # si la clef existe, on la renvoi, sinon on la créé et on la renvoi
+            for row in range(parent.rowCount()):
+                idx = self.index(row,0,parent)
+                item = self.data(idx,Qt.ItemDataRole.DisplayRole)
+                if item is not None and item.text()==key:
+                    return item
+            new_key = QStandardItem()
+            new_key.setData(key,Qt.ItemDataRole.DisplayRole)
+            parent.appendRow(new_key)
+            return new_key
+        
+        def add_key(parent:QStandardItem,keys,values:pd.DataFrame) -> QStandardItem:
+            if len(keys) > 1:
+                key = is_key_exist(parent,keys[0])
+                add_key(key,keys[1:],values)
+            else:
+                key = is_key_exist(parent,keys[0])
+                for row,cols in values.iterrows():
+                    items = [QStandardItem("")]
+                    for col in values.columns.values:
+                        if col not in columns:
+                            item = QStandardItem()
+                            item.setData(cols[col],Qt.ItemDataRole.DisplayRole)
+                            items.append(item)
+                    key.appendRow(items)
             
 
         for keys, group in data.groupby(columns):
-            add_key(self,keys,group)
+            add_key(self.invisibleRootItem(),keys,group)
 
         header_values = [""] + [col for col in data.columns.values if col not in columns]
         self.setHorizontalHeaderLabels(header_values)
@@ -160,48 +166,8 @@ class MultiLevelHeaderExample(QWidget):
         group_model = model.GroupbyColumnTableModel()
         group_model.setSourceModel(table_model)
 
-        self.initUI()
-
-    def initUI(self):
-        self.setGeometry(100, 100, 800, 600)
-        self.setWindowTitle('Multi-Level Header Example')
-
-        data = [
-            ["Row 1", "Data 1-1", "Data 1-2", "Data 1-3", "Data 1-4", "Data 1-5"],
-            ["Row 2", "Data 2-1", "Data 2-2", "Data 2-3", "Data 2-4", "Data 2-5"],
-            ["Row 3", "Data 3-1", "Data 3-2", "Data 3-3", "Data 3-4", "Data 3-5"]
-        ]
-
-        table = QTableWidget(self)
-        table.setRowCount(len(data))
-        table.setColumnCount(len(data[0]))
-
-        for i, row in enumerate(data):
-            for j, item in enumerate(row):
-                table.setItem(i, j, QTableWidgetItem(item))
-
-        # Create a left panel widget
-        left_panel = QWidget(splitter)
-        left_table_view = QTableView()
-        left_table_view.setModel(model_pandas)
-        left_panel_layout = QVBoxLayout(left_panel)
-        left_panel_layout.addWidget(left_table_view)
-
-        # Create a right panel widget
-        right_panel = QWidget(splitter)
-        right_tree_view = QTreeView()
-        right_tree_view.setModel(group_model_pandas)
-        right_panel_layout = QVBoxLayout(right_panel)
-        right_panel_layout.addWidget(right_tree_view)
-
-        # Set up multi-level header model
-        header_model = MultiLevelHeaderModel(1, 15, self)
-        table.setHorizontalHeaderModel(header_model)
-
-        # Allow selecting entire rows
-        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-
+    
 app = QApplication([])
-window = MainWindow()
+window = MultiLevelHeaderExample()
 window.show()
 app.exec()
