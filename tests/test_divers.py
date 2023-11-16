@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import (QApplication, QMainWindow, QSplitter, QWidget,
 from PyQt6 import QtCore
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
 import pandas as pd
+import numpy as np
 
 import sys
 sys.path.append("app")
@@ -42,7 +43,6 @@ class pandasModel(QtCore.QAbstractItemModel):
             return self.createIndex(row,column,parent)
         
     def parent(self, child:QModelIndex) -> QModelIndex:
-        
         if not child.isValid():
             return QModelIndex()        
         else:
@@ -84,46 +84,60 @@ class groupPandasModel(QStandardItemModel):
             
 
         for keys, group in data.groupby(columns):
-            print(keys)
-            print(group)
             add_key(self.invisibleRootItem(),keys,group)
 
         header_values = [""] + [col for col in data.columns.values if col not in columns]
         self.setHorizontalHeaderLabels(header_values)
 
+    def data(self, index: QModelIndex, role: int) -> any:
+        if not index.isValid():
+            return None
+        value = super().data(index,role)
+        if role == Qt.ItemDataRole.DisplayRole:
+            if isinstance(value,np.int64):
+                return int(value)
+        
+        return value
+
+
 class MultiLevelHeaderExample(QWidget):
     def __init__(self):
         super().__init__()
 
-        data = [["sample",4,5,6],
-                ["model",9,67,90],
-                ["sample",4,45,9],
-                ["model",3,5,7],
-                ["sample",5,34,5]]
+        data = [[865123,1,"DSC","pic_fusion",115],
+                [865123,1,"DSC","pic_crist",100],
+                [865123,1,"DSC","enthalpie",250],
+                [865124,1,"DSC","pic_crist",134],
+                [865124,1,"DSC","pic_fusion",110],
+                [865124,1,"DSC","enthalpie",300],]
         
         # model pandas
-        data_df = pd.DataFrame(data, columns=["colA","colB","colC","colD"])
+        data_df = pd.DataFrame(data, columns=["Sample","Replicat","Analysis","Result_name","Value"])
         model_pandas = pandasModel(data_df)
         
-        group_model_pandas = groupPandasModel(data_df,["colA","colB"])
+        pivot_data = data_df.pivot(index=["Sample","Replicat","Analysis"],
+                                   columns="Result_name",values="Value").reset_index()
+
+        pivot_model_pandas = pandasModel(pivot_data)
+        group_model_pandas = groupPandasModel(data_df,["Sample","Replicat"])
 
         # Creation du model table
         table_model = QStandardItemModel(4,4)
         for row in range(table_model.rowCount()):
             for col in range(table_model.columnCount()):
                 idx = table_model.index(row,col)
-                table_model.setData(idx,data[row][col],QtCore.Qt.ItemDataRole.DisplayRole)
+                table_model.setData(idx,data[row][col],Qt.ItemDataRole.DisplayRole)
 
         #Creation du model arbre
         tree_model = QStandardItemModel()
         for row, columns in enumerate(data):
             root = QStandardItem()
-            root.setData(data[row][0],QtCore.Qt.ItemDataRole.DisplayRole)
+            root.setData(data[row][0],Qt.ItemDataRole.DisplayRole)
             tree_model.appendRow(root)
             values = []
             for col in columns[1:]:
                 item = QStandardItem()
-                item.setData(col,QtCore.Qt.ItemDataRole.DisplayRole)
+                item.setData(col,Qt.ItemDataRole.DisplayRole)
                 values.append(item)
             root.appendRow(values)
         tree_model.setHorizontalHeaderLabels(["1","2","3"])
@@ -138,15 +152,13 @@ class MultiLevelHeaderExample(QWidget):
         self.tree = QTreeView()
         self.tree.setModel(group_model_pandas)
         self.tree.expandAll()
+        self.table_pivot = QTableView()
+        self.table_pivot.setModel(pivot_model_pandas)
         self.layout.addWidget(self.table)
         self.layout.addWidget(self.tree)
+        self.layout.addWidget(self.table_pivot)
         self.setLayout(self.layout)
 
-        #Test
-        idx = group_model_pandas.index(1,0,group_model_pandas.index(0,0))
-        print(group_model_pandas.data(idx,Qt.ItemDataRole.DisplayRole))
-
-    
 app = QApplication([])
 window = MultiLevelHeaderExample()
 window.show()
