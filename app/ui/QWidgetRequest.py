@@ -6,6 +6,7 @@ from PyQt6.QtGui import QAction
 from PyQt6.QtSql import QSqlQuery, QSqlQueryModel, QSqlDatabase
 from my_module.model import QuickQuery, GroupbyColumnTableModel
 import database as LIMS
+import pandas as pd
 
 class QuickSearch(QGroupBox):
     def __init__(self, query:QuickQuery ) -> None:
@@ -90,6 +91,7 @@ class RequestTab(QWidget):
         super().__init__()
         self.query = QuickQuery()
         self.lims_table_data = QSqlQueryModel()
+        self.lims_data = pd.DataFrame()
         self.lims_tree_data = GroupbyColumnTableModel([0,1,4,5])
         layout = QVBoxLayout()
 
@@ -176,9 +178,23 @@ class RequestTab(QWidget):
         if LIMS.connection_LIMS():
             con = QSqlDatabase.database("LIMS")
             my_query = QSqlQuery(self.query.createQuery(), con)
-            self.lims_table_data.setQuery(my_query)
-            self.lims_tree_data.setSourceModel(self.lims_table_data)
-            
+            # self.lims_table_data.setQuery(my_query)
+            # self.lims_tree_data.setSourceModel(self.lims_table_data)
+            results = []
+            titles = []
+            record = my_query.record()
+            for i in range(record.count()):
+                titles.append(record.fieldName(i))
+            while my_query.next():
+                row = []
+                for i in range(record.count()):
+                    row.append(my_query.value(i))
+                results.append(row)
+            self.lims_data = pd.DataFrame(data=results, columns=titles)
+            print(self.lims_data)
+
+
+
             print("End of data update")
         else:
             print("erreur à l'ouverture du LIMS")
