@@ -1,8 +1,8 @@
-import typing
 from PyQt6 import QtCore
-from PyQt6.QtSql import QSqlQueryModel
+from PyQt6.QtCore import QModelIndex, Qt, pyqtSignal
 from PyQt6.QtGui import QStandardItemModel, QStandardItem
-
+import pandas as pd
+import numpy as np
 #CPO-CPR-23-0105
  
 class QuickQuery(QtCore.QAbstractTableModel):
@@ -92,139 +92,118 @@ class QuickQuery(QtCore.QAbstractTableModel):
 
         return sql_query
 
+class PandasModel(QtCore.QAbstractItemModel):
+    model_change = pyqtSignal(bool)
 
-class GroupbyColumnTableModel(QStandardItemModel):
-    """
-    A completer
-    """
-    def __init__(self, groupColumns:list = [0], parent = None) -> None:
-        super(QStandardItemModel,self).__init__(parent)
-        self._groupColumns = groupColumns
+    def __init__(self, data:pd.DataFrame) -> None:
+        super().__init__()
+        self._root = QModelIndex()
+        self.set_dataFrame(data)
+
+    def set_dataFrame(self, data:pd.DataFrame):
+        self._data = data
+        # emit change
+        self.model_change.emit(True)
+        # emit change to views
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)
+        
+    def data(self, index: QModelIndex, role: int) -> any:
+        if role == Qt.ItemDataRole.DisplayRole:
+            value = self._data.iloc[index.row(),index.column()]
+            if isinstance(value,np.int64):
+                return int(value)
+            if isinstance(value,np.float64):
+                return float(value)
+            return value
+
+    def rowCount(self, parent: QModelIndex) -> int:
+        return len(self._data.index)
+    
+    def columnCount(self, parent: QModelIndex) -> int:
+        return len(self._data.columns)
+
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int) -> any:
+        if role == Qt.ItemDataRole.DisplayRole:
+            if orientation == Qt.Orientation.Horizontal:
+                return str(self._data.columns[section])
+            if orientation == Qt.Orientation.Vertical:
+                return str(self._data.index[section])
+
+    def index(self, row: int, column: int, parent: QModelIndex) -> QModelIndex:
+        if not parent:
+            return super().index(row,column,self._root)
+        else:
+            return self.createIndex(row,column,parent)
+        
+    def parent(self, child:QModelIndex) -> QModelIndex:
+        if not child.isValid():
+            return QModelIndex()        
+        else:
+            return self._root
+        
+class GroupPandasModel(QStandardItemModel):
+    def __init__(self, columns:list[str]) -> None:
+        super().__init__()
+        self._groupColumns = columns
 
     @property
     def groupColumns(self):
         return self._groupColumns
     
     @groupColumns.setter
-    def groupColumns(self, list_value:list[int]):
-        if any(value < 0 for value in list_value):
-            raise ValueError("Value must be positive")
-        self._groupColumns = list_value            
+    def groupColumns(self, list_value:list[str]):
+        self._groupColumns = list_value
 
-    def setSourceModel(self, sourceModel: QtCore.QAbstractTableModel) -> None:
-        def add_to_dict(my_dict, keys, value):
-            key = keys[0]
-            if len(keys) == 1:
-                if key not in my_dict:
-                    my_dict[key] = set()
-                my_dict[key].add(value)
+    def create_model(self, data:pd.DataFrame) -> any:
+        def is_key_exist(parent:QStandardItem, key:str) -> QStandardItem:
+            # si la clef existe, on la renvoi, sinon on la créé et on la renvoi
+            for row in range(parent.rowCount()):
+                item = parent.child(row,0)
+                if item.text()==key:
+                    return item
+            new_key = QStandardItem(str(key))
+            new_key.setData(key,Qt.ItemDataRole.DisplayRole)
+            parent.appendRow(new_key)
+            return new_key
+        
+        def add_key(parent:QStandardItem,keys,values:pd.DataFrame) -> QStandardItem:
+            if len(keys) > 1:
+                key = is_key_exist(parent,keys[0])
+                add_key(key,keys[1:],values)
             else:
-                if key not in my_dict:
-                    my_dict[key] = {}
-                add_to_dict(my_dict[key], keys[1:], value)
-        
-        if max(self.groupColumns)>sourceModel.columnCount(): # test if groupColumn match with the new model
-            raise ValueError("Groupby column value is higher than the number of column in the model")
+                key = is_key_exist(parent,keys[0])
+                for _,cols in values.iterrows():
+                    items = [QStandardItem("")]
+                    for col in values.columns.values:
+                        if col not in self._groupColumns:
+                            item = QStandardItem()
+                            item.setData(cols[col],Qt.ItemDataRole.DisplayRole)
+                            items.append(item)
+                    key.appendRow(items)
 
-        self.clear()
-        group_values = {}
-        #Extract unique value from groupbycolumn and all row that belong to this value
-        for row in range(sourceModel.rowCount()):
-            keys = []
-            for col in self._groupColumns:
-                keys.append(sourceModel.data(sourceModel.index(row,col)))
-            add_to_dict(group_values, keys, row)
-        
-        #Add item in model
-        def add_to_model(parent:QStandardItem,my_dict:dict):
-            for key, items in my_dict.items():
-                child = QStandardItem()
-                child.setData(key,QtCore.Qt.ItemDataRole.DisplayRole)
-                parent.appendRow(child)
-                if isinstance(items,dict):
-                    add_to_model(child,items)
-                else:
-                    for row in items:
-                        values = [QStandardItem("")]
-                        for col in range(sourceModel.columnCount()):
-                            if col not in self._groupColumns:
-                                item = QStandardItem()
-                                item.setData(sourceModel.data(sourceModel.index(row,col)),QtCore.Qt.ItemDataRole.DisplayRole)
-                                values.append(item)
-                        parent.appendRow(values)
+        if not all([column in data.columns.values for column in self._groupColumns]):
+            print("columns must be a list of column from data")
+            print(data.columns.values)
+            print(self._groupColumns)
+            return
+            # raise ValueError("columns must be a list of column from data")    
 
-        add_to_model(self,group_values)
+        for keys, group in data.groupby(self._groupColumns):
+            add_key(self.invisibleRootItem(),keys,group)
 
-        header_values = [""] + [str(sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole))
-                        for col in range(sourceModel.columnCount()) if col not in self._groupColumns]
+        header_values = [""] + [col for col in data.columns.values if col not in self._groupColumns]
         self.setHorizontalHeaderLabels(header_values)
+        # emit change to views
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, 0)
 
-
-class PivotResultTableModel(QStandardItemModel):
-    """
-    Pivote les colonnes Result_Name et Result
-    A completer
-    """
-    def __init__(self,parent = None) -> None:
-        super(QStandardItemModel,self).__init__(parent)
-
-    def setSourceModel(self, sourceModel: QtCore.QAbstractTableModel) -> None:
-        """
-        A completer
-        """       
-        def add_to_dict(my_dict, keys, value):
-            key = keys[0] + "_" + keys[1]
-            if key not in my_dict:
-                my_dict[key] = set()
-            my_dict[key].add(value)
-            
-        self.clear()
-        header_values = []
-        pivot_index = {}
-        group_index = {}
-        for col in range(sourceModel.columnCount()):
-            column_name = sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole)
-            if column_name in ('Analysis','Result_name','Result'):
-                pivot_index[column_name] = col
-            else:
-                group_index[column_name] = col
-                header_values.append(column_name)
-  
-        new_headers = []
-        groups_row = {}
-        for row in range(sourceModel.rowCount()):
-            # Trouve les lignes correspondant aux couples unique des colonnes non pivotées
-            keys = []
-            for col in group_index:
-                keys.append(sourceModel.data(sourceModel.index(row,col)))
-            add_to_dict(groups_row,keys,row)
-            # Récupère les couples (analyses,result_name)
-            header = sourceModel.data(sourceModel.index(row,pivot_index['Analysis'])) + "_" + sourceModel.data(sourceModel.index(row,pivot_index['Result_name']))
-            new_headers.append(header)
-
-        header_values = header_values + new_headers # ajoute les colonnes aux headers
+    def data(self, index: QModelIndex, role: int) -> any:
+        if not index.isValid():
+            return None
+        value = super().data(index,role)
+        if role == Qt.ItemDataRole.DisplayRole:
+            if isinstance(value,np.int64):
+                return int(value)
+            if isinstance(value,np.float64):
+                return float(value)
         
-        #Add item in model
-        def add_to_model(parent,my_dict:dict):
-            for key, items in my_dict.items():
-                child = QStandardItem(str(key))
-                parent.appendRow(child)
-                if isinstance(items,dict):
-                    add_to_model(child,items)
-                else:
-                    for row in items:
-                        parent.appendRow([QStandardItem("")] +
-                            [QStandardItem(str(sourceModel.data(sourceModel.index(row,col)))) 
-                            for col in range(sourceModel.columnCount()) if col not in self._groupColumns])
-
-        add_to_model(self,group_values)
-
-    
-        
-
-
-
-
-        # header_values = [""] + [sourceModel.headerData(col,QtCore.Qt.Orientation.Horizontal,QtCore.Qt.ItemDataRole.DisplayRole)
-        #                 for col in range(sourceModel.columnCount()) if col not in self._groupColumns]
-        # self.setHorizontalHeaderLabels(header_values)
+        return value

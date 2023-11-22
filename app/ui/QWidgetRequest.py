@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import (QTableView, QTreeView, QWidget, QVBoxLayout, QCombo
                              QLineEdit, QMenu, QSplitter, QHeaderView, QAbstractItemView)
 from PyQt6.QtGui import QAction
 from PyQt6.QtSql import QSqlQuery, QSqlQueryModel, QSqlDatabase
-from my_module.model import QuickQuery, GroupbyColumnTableModel
+from my_module.model import QuickQuery, PandasModel, GroupPandasModel
 import database as LIMS
 import pandas as pd
 
@@ -90,9 +90,10 @@ class RequestTab(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.query = QuickQuery()
-        self.lims_table_data = QSqlQueryModel()
         self.lims_data = pd.DataFrame()
-        self.lims_tree_data = GroupbyColumnTableModel([0,1,4,5])
+        self.lims_table_data = PandasModel(self.lims_data)
+        self.lims_tree_data = GroupPandasModel(["PROJECT_NAME","SAMPLE_NUMBER","ANALYSIS","REPLICATE"])
+        self.lims_table_data.model_change.connect(self.update_tree_data)
         layout = QVBoxLayout()
 
         # Grid Layout
@@ -144,6 +145,7 @@ class RequestTab(QWidget):
         self.queryTree_result.header().setMinimumSectionSize(150)
         self.queryTree_result.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.queryTree_result.header().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
+        self.queryTree_result.expandAll()
         bot_pannel_layout.addWidget(self.queryTree_result,1,0,1,2)  # row 1, column 2, span 1 row, 1 column
         bot_pannel_layout.setColumnStretch(1, 1)
         # Bottom: Send to Selection Button
@@ -155,16 +157,20 @@ class RequestTab(QWidget):
         layout.addLayout(grid_layout)
         self.setLayout(layout)
 
+    def update_tree_data(self, value:bool):
+        self.lims_tree_data.create_model(self.lims_data)
+        self.queryTree_result.expandAll()
+
     def onTreeModeChanged(self, index):
         display_mode = index  # 0 for groupby DDT, 1 for groupby Material
         if display_mode == 0:
             print("Switched to groupby DDT mode")
-            self.lims_tree_data.groupColumns = [0,1,4,5]
+            self.lims_tree_data.groupColumns = ["PROJECT_NAME","SAMPLE_NUMBER","ANALYSIS","REPLICATE"]
         else:
             print("Switched to groupby Material mode")
-            self.lims_tree_data.groupColumns = [2,3,4,5]
+            self.lims_tree_data.groupColumns = ["PRODUCT","MATERIAL_NAME","ANALYSIS","REPLICATE"]
         if self.lims_tree_data.rowCount()>0:
-            self.lims_tree_data.setSourceModel(self.lims_table_data)
+            self.lims_tree_data.create_model(self.lims_data)
 
     def onSearchModeChanged(self, index):
         pass
@@ -191,10 +197,9 @@ class RequestTab(QWidget):
                     row.append(my_query.value(i))
                 results.append(row)
             self.lims_data = pd.DataFrame(data=results, columns=titles)
-            print(self.lims_data)
-
-
-
+            self.lims_table_data.set_dataFrame(self.lims_data)
+            # self.query_result.setModel(self.lims_table_data)
+            print(type(self.lims_table_data.data(self.lims_table_data.index(1,0,self.lims_table_data._root),QtCore.Qt.ItemDataRole.DisplayRole)))
             print("End of data update")
         else:
             print("erreur à l'ouverture du LIMS")

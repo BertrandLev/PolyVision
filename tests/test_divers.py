@@ -1,5 +1,5 @@
 import typing
-from PyQt6.QtCore import QModelIndex, QObject, Qt
+ Qt
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QSplitter, QWidget,
                             QVBoxLayout, QHBoxLayout, QPushButton, QTableView,
                             QTreeView)
@@ -12,92 +12,7 @@ import sys
 sys.path.append("app")
 from my_module import model
 
-class pandasModel(QtCore.QAbstractItemModel):
-    def __init__(self, data:pd.DataFrame) -> None:
-        super().__init__()
-        self._data = data
-        self._root = QModelIndex()
 
-    def data(self, index: QModelIndex, role: int) -> any:
-        if role == Qt.ItemDataRole.DisplayRole:
-            value = self._data.iloc[index.row(),index.column()]
-            return str(value)
-
-    def rowCount(self, parent: QModelIndex) -> int:
-        return len(self._data.index)
-    
-    def columnCount(self, parent: QModelIndex) -> int:
-        return len(self._data.columns)
-
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int) -> any:
-        if role == Qt.ItemDataRole.DisplayRole:
-            if orientation == Qt.Orientation.Horizontal:
-                return str(self._data.columns[section])
-            if orientation == Qt.Orientation.Vertical:
-                return str(self._data.index[section])
-
-    def index(self, row: int, column: int, parent: QModelIndex) -> QModelIndex:
-        if not parent:
-            return super().index(row,column,self._root)
-        else:
-            return self.createIndex(row,column,parent)
-        
-    def parent(self, child:QModelIndex) -> QModelIndex:
-        if not child.isValid():
-            return QModelIndex()        
-        else:
-            return self._root
-        
-class groupPandasModel(QStandardItemModel):
-    def __init__(self, data:pd.DataFrame, columns:list[str]) -> None:
-        super().__init__()
-        if not all([column in data.columns.values for column in columns]):
-            raise ValueError("columns must be a list of column from data")
-        self.create_model(data,columns)
-
-    def create_model(self, data:pd.DataFrame, columns:list[str]) -> any:
-        def is_key_exist(parent:QStandardItem, key:str) -> QStandardItem:
-            # si la clef existe, on la renvoi, sinon on la créé et on la renvoi
-            for row in range(parent.rowCount()):
-                item = parent.child(row,0)
-                if item.text()==key:
-                    return item
-            new_key = QStandardItem(str(key))
-            new_key.setData(key,Qt.ItemDataRole.DisplayRole)
-            parent.appendRow(new_key)
-            return new_key
-        
-        def add_key(parent:QStandardItem,keys,values:pd.DataFrame) -> QStandardItem:
-            if len(keys) > 1:
-                key = is_key_exist(parent,keys[0])
-                add_key(key,keys[1:],values)
-            else:
-                key = is_key_exist(parent,keys[0])
-                for _,cols in values.iterrows():
-                    items = [QStandardItem("")]
-                    for col in values.columns.values:
-                        if col not in columns:
-                            item = QStandardItem()
-                            item.setData(cols[col],Qt.ItemDataRole.DisplayRole)
-                            items.append(item)
-                    key.appendRow(items)
-            
-
-        for keys, group in data.groupby(columns):
-            add_key(self.invisibleRootItem(),keys,group)
-
-        header_values = [""] + [col for col in data.columns.values if col not in columns]
-        self.setHorizontalHeaderLabels(header_values)
-
-    def data(self, index: QModelIndex, role: int) -> any:
-        if not index.isValid():
-            return None
-        value = super().data(index,role)
-        if role == Qt.ItemDataRole.DisplayRole:
-            if isinstance(value,np.int64):
-                return int(value)
-        
-        return value
 
 
 class MultiLevelHeaderExample(QWidget):
