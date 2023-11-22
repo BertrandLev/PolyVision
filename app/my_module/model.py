@@ -136,11 +136,17 @@ class PandasModel(QtCore.QAbstractItemModel):
             return self.createIndex(row,column,parent)
         
     def parent(self, child:QModelIndex) -> QModelIndex:
-        if not child.isValid():
-            return QModelIndex()        
-        else:
-            return self._root
+        return self._root
         
+    def sort(self, column: int, order=Qt.SortOrder.AscendingOrder) -> None:
+        if self.columnCount(self._root)>0:
+            isAscending = True if order == Qt.SortOrder.AscendingOrder else False
+            self.beginResetModel()
+            # Sort the data using the sort_values method from dataframe
+            self._data.sort_values(by= self._data.columns.values[column], ascending=isAscending, inplace=True)
+            self.endResetModel()
+
+
 class GroupPandasModel(QStandardItemModel):
     def __init__(self, columns:list[str]) -> None:
         super().__init__()
@@ -155,11 +161,12 @@ class GroupPandasModel(QStandardItemModel):
         self._groupColumns = list_value
 
     def create_model(self, data:pd.DataFrame) -> any:
-        def is_key_exist(parent:QStandardItem, key:str) -> QStandardItem:
+        def is_key_exist(parent:QStandardItem, key:any) -> QStandardItem:
             # si la clef existe, on la renvoi, sinon on la créé et on la renvoi
             for row in range(parent.rowCount()):
                 item = parent.child(row,0)
-                if item.text()==key:
+                item_value = item.data(Qt.ItemDataRole.DisplayRole)
+                if item_value==key:
                     return item
             new_key = QStandardItem(str(key))
             new_key.setData(key,Qt.ItemDataRole.DisplayRole)
@@ -167,6 +174,7 @@ class GroupPandasModel(QStandardItemModel):
             return new_key
         
         def add_key(parent:QStandardItem,keys,values:pd.DataFrame) -> QStandardItem:
+            print(keys)
             if len(keys) > 1:
                 key = is_key_exist(parent,keys[0])
                 add_key(key,keys[1:],values)
@@ -180,14 +188,12 @@ class GroupPandasModel(QStandardItemModel):
                             item.setData(cols[col],Qt.ItemDataRole.DisplayRole)
                             items.append(item)
                     key.appendRow(items)
-
+        
         if not all([column in data.columns.values for column in self._groupColumns]):
             print("columns must be a list of column from data")
-            print(data.columns.values)
-            print(self._groupColumns)
-            return
-            # raise ValueError("columns must be a list of column from data")    
+            raise ValueError("columns must be a list of column from data")    
 
+        self.clear()
         for keys, group in data.groupby(self._groupColumns):
             add_key(self.invisibleRootItem(),keys,group)
 

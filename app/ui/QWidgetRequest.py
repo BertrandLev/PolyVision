@@ -1,9 +1,10 @@
 from PyQt6 import QtCore
 from PyQt6.QtWidgets import (QTableView, QTreeView, QWidget, QVBoxLayout, QComboBox,
                              QGroupBox, QPushButton, QGridLayout, QLabel,
-                             QLineEdit, QMenu, QSplitter, QHeaderView, QAbstractItemView)
+                             QLineEdit, QMenu, QSplitter, QHeaderView, QAbstractItemView,
+                             QSpacerItem, QSizePolicy)
 from PyQt6.QtGui import QAction
-from PyQt6.QtSql import QSqlQuery, QSqlQueryModel, QSqlDatabase
+from PyQt6.QtSql import QSqlQuery, QSqlDatabase
 from my_module.model import QuickQuery, PandasModel, GroupPandasModel
 import database as LIMS
 import pandas as pd
@@ -124,9 +125,11 @@ class RequestTab(QWidget):
         upper_pannel_layout = QVBoxLayout(upper_pannel)
         self.query_result = QTableView()
         self.query_result.setModel(self.lims_table_data)
+        self.query_result.setSortingEnabled(True)
         self.query_result.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
         self.query_result.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.query_result.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.query_result.horizontalHeader().sortIndicatorChanged.connect(self.onSortIndicatorChanged)
         upper_pannel_layout.addWidget(self.query_result) 
         # Bot
         bot_pannel = QWidget(splitter)
@@ -136,8 +139,9 @@ class RequestTab(QWidget):
         tree_mode_combobox.addItem("Groupby DDT")
         tree_mode_combobox.addItem("Groupby Material")
         tree_mode_combobox.currentIndexChanged.connect(self.onTreeModeChanged)  # Connect signal to a method
+        bot_pannel_spacer = QSpacerItem(20,40,QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         bot_pannel_layout.addWidget(tree_mode_combobox,0,0,1,1)
-        bot_pannel_layout.addWidget(QWidget(),0,1,1,1)
+        bot_pannel_layout.addItem(bot_pannel_spacer,0,1,1,1)
         self.queryTree_result = QTreeView()
         self.queryTree_result.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.queryTree_result.setModel(self.lims_tree_data)
@@ -145,17 +149,18 @@ class RequestTab(QWidget):
         self.queryTree_result.header().setMinimumSectionSize(150)
         self.queryTree_result.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         self.queryTree_result.header().setDefaultAlignment(QtCore.Qt.AlignmentFlag.AlignLeft)
-        self.queryTree_result.expandAll()
         bot_pannel_layout.addWidget(self.queryTree_result,1,0,1,2)  # row 1, column 2, span 1 row, 1 column
         bot_pannel_layout.setColumnStretch(1, 1)
         # Bottom: Send to Selection Button
         send_to_selection_button = QPushButton("Send to Selection")
         grid_layout.addWidget(send_to_selection_button, 3, 2, 1, 1)  # row 2, column 2, span 1 row, 1 column
-
         grid_layout.setColumnMinimumWidth(1, 150)
         grid_layout.setColumnStretch(2, 1)
         layout.addLayout(grid_layout)
         self.setLayout(layout)
+
+    def onSortIndicatorChanged(self, column, order):
+        self.lims_table_data.sort(column,order)
 
     def update_tree_data(self, value:bool):
         self.lims_tree_data.create_model(self.lims_data)
@@ -171,6 +176,7 @@ class RequestTab(QWidget):
             self.lims_tree_data.groupColumns = ["PRODUCT","MATERIAL_NAME","ANALYSIS","REPLICATE"]
         if self.lims_tree_data.rowCount()>0:
             self.lims_tree_data.create_model(self.lims_data)
+            self.queryTree_result.expandAll()
 
     def onSearchModeChanged(self, index):
         pass
@@ -184,8 +190,6 @@ class RequestTab(QWidget):
         if LIMS.connection_LIMS():
             con = QSqlDatabase.database("LIMS")
             my_query = QSqlQuery(self.query.createQuery(), con)
-            # self.lims_table_data.setQuery(my_query)
-            # self.lims_tree_data.setSourceModel(self.lims_table_data)
             results = []
             titles = []
             record = my_query.record()
@@ -198,8 +202,9 @@ class RequestTab(QWidget):
                 results.append(row)
             self.lims_data = pd.DataFrame(data=results, columns=titles)
             self.lims_table_data.set_dataFrame(self.lims_data)
-            # self.query_result.setModel(self.lims_table_data)
-            print(type(self.lims_table_data.data(self.lims_table_data.index(1,0,self.lims_table_data._root),QtCore.Qt.ItemDataRole.DisplayRole)))
+            my_query.finish()
+            LIMS.close_connection()
+            LIMS.remove_connection()
             print("End of data update")
         else:
             print("erreur à l'ouverture du LIMS")
