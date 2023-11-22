@@ -174,7 +174,6 @@ class GroupPandasModel(QStandardItemModel):
             return new_key
         
         def add_key(parent:QStandardItem,keys,values:pd.DataFrame) -> QStandardItem:
-            print(keys)
             if len(keys) > 1:
                 key = is_key_exist(parent,keys[0])
                 add_key(key,keys[1:],values)

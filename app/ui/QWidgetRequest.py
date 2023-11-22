@@ -88,6 +88,8 @@ class QuickSearch(QGroupBox):
 
 
 class RequestTab(QWidget):
+    df_data_update = QtCore.pyqtSignal(pd.DataFrame)
+
     def __init__(self) -> None:
         super().__init__()
         self.query = QuickQuery()
@@ -202,6 +204,7 @@ class RequestTab(QWidget):
                 results.append(row)
             self.lims_data = pd.DataFrame(data=results, columns=titles)
             self.lims_table_data.set_dataFrame(self.lims_data)
+            self.df_data_update.emit(self.lims_data)
             my_query.finish()
             LIMS.close_connection()
             LIMS.remove_connection()
@@ -215,3 +218,6 @@ class RequestTab(QWidget):
         else: # Logic for Advanced Search mode
             print('Advance')
         
+    def update_df_data(self, df_data:pd.DataFrame):
+        self.lims_data = df_data
+        self.lims_table_data.set_dataFrame(self.lims_data)
