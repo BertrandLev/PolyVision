@@ -5,6 +5,45 @@ import pandas as pd
 import numpy as np
 #CPO-CPR-23-0105
  
+class MyQuery(QStandardItemModel):
+    """
+    A class to manage the creation of SQL queries.
+    
+    Attributes:
+        conditions (list): contain the field, operator and values to create the where part of the query
+    """
+    def __init__(self) -> None:
+        super().__init__()
+
+    def add_to_data(self,field,value):
+        # Check if the field already exists
+        for row in range(self.rowCount()):
+            field_item = self.item(row)
+            if field_item.text() == field:
+                # Field exists, add the value as a child item
+                value_item = QStandardItem(value)
+                value_item.setEditable(True)  # Values are editable
+                field_item.appendRow(value_item)
+                return
+
+        # Field doesn't exist, create a new field
+        field_item = QStandardItem(field)
+        field_item.setEditable(False)  # Fields are not editable
+        self.appendRow(field_item)
+
+        # Create child item for the value
+        value_item = QStandardItem(value)
+        value_item.setEditable(True)  # Values are editable
+        field_item.appendRow(value_item)
+
+    def headerData(self, section, orientation, role):
+        # section is the index of the column/row.
+        Titre_Col = ['Fields and values']
+        column = Titre_Col[section]
+        if orientation == QtCore.Qt.Orientation.Horizontal:
+            if role == QtCore.Qt.ItemDataRole.DisplayRole:
+                return column
+
 class QuickQuery(QtCore.QAbstractTableModel):
     """
     A class to manage the creation of SQL queries.

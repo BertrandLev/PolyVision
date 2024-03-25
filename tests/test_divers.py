@@ -1,5 +1,4 @@
 import typing
- Qt
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QSplitter, QWidget,
                             QVBoxLayout, QHBoxLayout, QPushButton, QTableView,
                             QTreeView)

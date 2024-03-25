@@ -15,6 +15,19 @@ def connection_LIMS() -> bool:
         return False
     return True
 
+def connection_LIMS_MSQLServer() -> bool:
+    con = QSqlDatabase.addDatabase("QODBC","LIMS")
+    con.setHostName("OPOTPA-WPARA02")
+    con.setDatabaseName("LBWARAP01")
+    con.setUserName("")
+    con.setPassword("")
+    
+    if con.open():
+        print("Connected to database using Windows credentials")
+    else:
+        print("Failed to connect to database using Windows credentials")
+
+
 def close_connection(connection_name : str = "LIMS") -> None:
     con = QSqlDatabase.database(connectionName=connection_name, open=False)
     if con.isOpen():

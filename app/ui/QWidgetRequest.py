@@ -5,12 +5,13 @@ from PyQt6.QtWidgets import (QTableView, QTreeView, QWidget, QVBoxLayout, QCombo
                              QSpacerItem, QSizePolicy)
 from PyQt6.QtGui import QAction
 from PyQt6.QtSql import QSqlQuery, QSqlDatabase
-from my_module.model import QuickQuery, PandasModel, GroupPandasModel
+from my_module.model import MyQuery, QuickQuery, PandasModel, GroupPandasModel
 import database as LIMS
 import pandas as pd
 
 class QuickSearch(QGroupBox):
-    def __init__(self, query:QuickQuery ) -> None:
+    # def __init__(self, query:QuickQuery ) -> None:
+    def __init__(self, query:MyQuery ) -> None:
         super().__init__(title = "Search Criteria")
 
         layout = QGridLayout()
@@ -40,29 +41,32 @@ class QuickSearch(QGroupBox):
         layout.addWidget(current_list_label, 2, 0, 1, 4)
         
         # Fourth Line: List Widget
-        search_table = QTableView()
+        # search_table = QTableView()
+        search_table = QTreeView()
         search_table.setModel(query)
-        search_table.setColumnWidth(0,110)
-        search_table.setColumnWidth(1,80)
-        search_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
-        search_table.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
-        search_table.verticalHeader().setFixedWidth(20)
-        search_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        # search_table.setColumnWidth(0,110)
+        # search_table.setColumnWidth(1,80)
+        # search_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        # search_table.horizontalHeader().setSectionResizeMode(2,QHeaderView.ResizeMode.Stretch)
+        # search_table.verticalHeader().setFixedWidth(20)
+        # search_table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
         # Add table features
-        search_table.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-        search_table.customContextMenuRequested.connect(lambda event: self.openTableContextMenu(event,search_table, query))
+        # search_table.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        # search_table.customContextMenuRequested.connect(lambda event: self.openTableContextMenu(event,search_table, query))
         
         layout.addWidget(search_table, 3, 0, 1, 4)
         
         # Set layout to groupbox_left
         self.setLayout(layout)
 
-    def addToTable(self, field_entry: QComboBox, value_entry: QLineEdit , query: QuickQuery):
+    # def addToTable(self, field_entry: QComboBox, value_entry: QLineEdit , query: QuickQuery):
+    def addToTable(self, field_entry: QComboBox, value_entry: QLineEdit , query: MyQuery):
         field = field_entry.currentText()
         value = value_entry.text()
         if value:
-            query.add_to_data((field,"=",value))
+            # query.add_to_data((field,"=",value))
+            query.add_to_data(field,value)
             query.layoutChanged.emit()
             value_entry.setText("")
 
@@ -86,13 +90,13 @@ class QuickSearch(QGroupBox):
         context_menu.addAction(delete_action)
         context_menu.exec(search_table.mapToGlobal(event))
 
-
 class RequestTab(QWidget):
     df_data_update = QtCore.pyqtSignal(pd.DataFrame)
 
     def __init__(self) -> None:
         super().__init__()
-        self.query = QuickQuery()
+        # self.query = QuickQuery()
+        self.query = MyQuery()
         self.lims_data = pd.DataFrame()
         self.lims_table_data = PandasModel(self.lims_data)
         self.lims_tree_data = GroupPandasModel(["PROJECT_NAME","SAMPLE_NUMBER","ANALYSIS","REPLICATE"])
